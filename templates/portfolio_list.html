@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>我的股票管理</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStockModal">
+        + 新增持股
+    </button>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>名稱(代號)</th>
+                    <th>目前價格</th>
+                    <th>買入均價</th>
+                    <th>除息金額</th>
+                    <th>殖利率</th>
+                    <th>成交日期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr>
+                    <td><strong>{{ stock.stock_name }}</strong><br><small class="text-muted">{{ stock.stock_code }}</small></td>
+                    <td>${{ stock.current_price }}</td>
+                    <td>${{ stock.buy_price }}</td>
+                    <td>${{ stock.dividend }}</td>
+                    <td>
+                        <span class="badge bg-info">
+                            {{ "%.2f"|format((stock.dividend / stock.buy_price) * 100) if stock.buy_price > 0 else 0 }}%
+                        </span>
+                    </td>
+                    <td>{{ stock.buy_date }}</td>
+                    <td>
+                        <a href="{{ url_for('portfolio.delete_stock', id=stock.id) }}" 
+                           class="btn btn-outline-danger btn-sm" 
+                           onclick="return confirm('確定要刪除這筆資料嗎？')">刪除</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">目前尚無持股資料，請點擊右上方新增。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addStockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('portfolio.add_stock') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增股票資料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">股票名稱</label>
+                            <input type="text" name="stock_name" class="form-control" placeholder="如: 元大台灣50" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">股票代碼</label>
+                            <input type="text" name="stock_code" class="form-control" placeholder="如: 0050" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">目前價格</label>
+                            <input type="number" step="0.01" name="current_price" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">買入均價</label>
+                            <input type="number" step="0.01" name="buy_price" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">除息金額</label>
+                            <input type="number" step="0.01" name="dividend" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">成交日期</label>
+                            <input type="date" name="buy_date" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存資料</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

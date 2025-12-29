@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">會員帳號資訊</h5>
+                    <span class="badge bg-secondary">使用者 ID: #{{ session.user_id }}</span>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('auth.update_profile') }}" method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">身分證字號 (不可修改)</label>
+                                <input type="text" class="form-control bg-light" value="{{ user.id_card }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">姓名</label>
+                                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">電話</label>
+                                <input type="text" name="phone" class="form-control" value="{{ user.phone }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">電子信箱</label>
+                                <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">風險承受等級</label>
+                                <select name="risk_level" class="form-select">
+                                    <option value="低風險" {% if user.risk_level == '低風險' %}selected{% endif %}>低風險 (保守型)</option>
+                                    <option value="中風險" {% if user.risk_level == '中風險' %}selected{% endif %}>中風險 (穩健型)</option>
+                                    <option value="高風險" {% if user.risk_level == '高風險' %}selected{% endif %}>高風險 (積極型)</option>
+                                </select>
+                                <div class="form-text">系統將根據此等級為您推薦合適的 ETF。</div>
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/" class="btn btn-outline-secondary">取消</a>
+                            <button type="submit" class="btn btn-primary">儲存修改</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

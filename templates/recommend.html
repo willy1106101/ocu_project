@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>根據您的風險等級推薦</h3>
+            <span class="badge {% if user_risk == '高風險' %}bg-danger{% elif user_risk == '中風險' %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6">
+                目前設定：{{ user_risk }}
+            </span>
+        </div>
+
+        <div class="row g-4">
+            {% for etf in etfs %}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title">{{ etf.name }}</h5>
+                            <span class="text-muted fw-bold">{{ etf.etf_code }}</span>
+                        </div>
+                        <hr>
+                        <div class="row text-center mt-3">
+                            <div class="col-4">
+                                <small class="text-muted d-block">1年報酬</small>
+                                <span class="text-danger fw-bold">{{ etf.annual_return }}%</span>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">夏普值</small>
+                                <span class="fw-bold">{{ etf.sharpe_ratio }}</span>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">波動率</small>
+                                <span class="fw-bold">{{ etf.volatility }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-3">
+                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.etf_code }}')">加入比對</button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted">
+                目前該等級尚無推薦項目。
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow border-primary sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">ETF 重複性健檢</h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">選擇兩檔 ETF，分析它們底層成分股是否過度集中，避免「假分散」投資風險。</p>
+                <form action="{{ url_for('recommend.compare_etfs') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">第一檔 ETF</label>
+                        <select name="etf1" id="etf_select1" class="form-select" required>
+                            <option value="">請選擇...</option>
+                            {% for a_etf in all_etfs %}
+                            <option value="{{ a_etf.etf_code }}">{{ a_etf.etf_code }} {{ a_etf.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">第二檔 ETF</label>
+                        <select name="etf2" id="etf_select2" class="form-select" required>
+                            <option value="">請選擇...</option>
+                            {% for a_etf in all_etfs %}
+                            <option value="{{ a_etf.etf_code }}">{{ a_etf.etf_code }} {{ a_etf.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">開始成分股分析</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 讓使用者點擊卡片按鈕時，自動填入比對下拉選單
+    function setCompare(code) {
+        let s1 = document.getElementById('etf_select1');
+        let s2 = document.getElementById('etf_select2');
+        if (!s1.value) {
+            s1.value = code;
+        } else {
+            s2.value = code;
+        }
+    }
+</script>
+
+{% endblock %}

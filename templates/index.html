@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="display-6">你好，{{ username }}！</h2>
+        <p class="text-muted">這是您今日的台股 ETF 投資概況。</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">市場焦點 ETF</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>名稱/代號</th>
+                                <th>目前價格</th>
+                                <th>漲跌幅</th>
+                                <th>開盤價</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in stocks %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ stock.name }}</div>
+                                    <small class="text-muted">{{ stock.etf_code }}</small>
+                                </td>
+                                <td>${{ stock.annual_return * 5 }} (示範價)</td> <td>
+                                    <span class="badge {% if stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ '+' if stock.annual_return > 0 }}{{ stock.annual_return }}%
+                                    </span>
+                                </td>
+                                <td>${{ stock.annual_return * 4.8 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center py-5">
+                <h5 class="text-muted">近 1 月漲幅趨勢圖</h5>
+                <p class="small text-secondary">(未來可在此處載入 Chart.js 或 Plotly 動態圖表)</p>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0">績效排行榜 (年報酬)</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for rank in rank_list %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold text-primary">#{{ loop.index }}</span> {{ rank.name }}
+                    </div>
+                    <span class="text-danger fw-bold">+{{ rank.annual_return }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card bg-primary text-white shadow-sm border-0">
+            <div class="card-body text-center py-4">
+                <h5>想要分散投資風險嗎？</h5>
+                <p class="small">立即使用成分股比對工具！</p>
+                <a href="/recommend/recommend" class="btn btn-light btn-sm fw-bold">前往推薦系統</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
