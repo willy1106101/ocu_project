@@ -1,6 +1,6 @@
 from flask import Flask, redirect, url_for, render_template, session
 from auth import auth_bp
-from profolio import portfolio_bp
+from portfolio import portfolio_bp
 from recommend import recommend_bp
 from models import get_db_connection
 
