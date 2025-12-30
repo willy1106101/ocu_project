@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <a href="/recommend/recommend" class="btn btn-link mb-3 p-0 text-decoration-none text-muted">
+                ← 返回推薦系統
+            </a>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4 text-center">
+                    <h3 class="mb-4">📊 成分股重疊分析報告</h3>
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <h4 class="text-primary">{{ etf1 }}</h4>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="h2 text-muted">VS</span>
+                        </div>
+                        <div class="col-md-5">
+                            <h4 class="text-success">{{ etf2 }}</h4>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <p class="mb-2 fw-bold">加權重疊比例</p>
+                        <div class="progress" style="height: 30px; border-radius: 15px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated 
+                                {% if total_overlap > 40 %}bg-danger{% elif total_overlap > 20 %}bg-warning{% else %}bg-success{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ total_overlap }}%;" 
+                                aria-valuenow="{{ total_overlap }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ total_overlap }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 rounded {% if total_overlap > 40 %}bg-light-danger{% elif total_overlap > 20 %}bg-light-warning{% else %}bg-light-success{% endif %}">
+                        {% if total_overlap > 40 %}
+                            <h5 class="text-danger">⚠️ 診斷結果：高度重疊</h5>
+                            <p class="mb-0 text-muted">這兩檔 ETF 的底層持股非常相似。若同時持有，一旦核心股票（如台積電）下跌，您的資產將面臨雙倍衝擊，無法達到分散風險的效果。</p>
+                        {% elif total_overlap > 20 %}
+                            <h5 class="text-warning">🔔 診斷結果：部分重疊</h5>
+                            <p class="mb-0 text-muted">這兩檔 ETF 有一定的持股重合度。建議檢視是否符合您的配置策略，或者考慮搭配不同產業類別的 ETF。</p>
+                        {% else %}
+                            <h5 class="text-success">✅ 診斷結果：分散良好</h5>
+                            <p class="mb-0 text-muted">這兩檔 ETF 的重疊度極低，能夠有效發揮互補作用，是一個健康的分散投資組合。</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">🔍 共同持有的成分股明細</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>成分股名稱</th>
+                                <th>代號</th>
+                                <th>{{ etf1 }} 佔比</th>
+                                <th>{{ etf2 }} 佔比</th>
+                                <th>重疊權重 (Min)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in stocks %}
+                            <tr>
+                                <td><strong>{{ stock.stock_name }}</strong></td>
+                                <td>{{ stock.stock_code }}</td>
+                                <td>{{ stock.w1 }}%</td>
+                                <td>{{ stock.w2 }}%</td>
+                                <td class="text-primary fw-bold">
+                                    {{ stock.w1 if stock.w1 < stock.w2 else stock.w2 }}%
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">這兩檔 ETF 沒有重複的成分股。</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-light-danger { background-color: #fff5f5; border: 1px solid #feb2b2; }
+    .bg-light-warning { background-color: #fffaf0; border: 1px solid #fbd38d; }
+    .bg-light-success { background-color: #f0fff4; border: 1px solid #9ae6b4; }
+</style>
+{% endblock %}
