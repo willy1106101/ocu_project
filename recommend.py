@@ -5,22 +5,27 @@ recommend_bp = Blueprint('recommend', __name__)
 
 @recommend_bp.route('/recommend')
 def recommend_home():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
-    
-    # 取得使用者目前的風險等級 (預設為中風險)
     user_risk = session.get('risk_level', '中風險')
     
+    # 定義類型的邏輯對應
+    risk_map = {
+        '低風險': (1,), 
+        '中風險': (2, 4, 10), 
+        '高風險': (3, 7, 8)
+    }
+    target_types = risk_map.get(user_risk, (2,))
+
     db = get_db_connection()
     try:
         with db.cursor() as cursor:
-            # 1. 根據風險等級推薦 ETF
-            sql = "SELECT * FROM etf_list WHERE risk_level = %s"
-            cursor.execute(sql, (user_risk,))
+            # 1. 抓取符合該風險類型的 ETF
+            format_strings = ','.join(['%s'] * len(target_types))
+            sql = f"SELECT name, ticker FROM etf_tickers WHERE types IN ({format_strings}) LIMIT 6"
+            cursor.execute(sql, target_types)
             recommended_etfs = cursor.fetchall()
             
-            # 2. 獲取所有 ETF 清單供重複性比對下拉選單使用
-            cursor.execute("SELECT etf_code, name FROM etf_list")
+            # 2. 抓取「所有」ETF 供比對下拉選單使用 (這會顯示 300 多檔)
+            cursor.execute("SELECT ticker, name FROM etf_tickers ORDER BY ticker ASC")
             all_etfs = cursor.fetchall()
             
         return render_template('recommend.html', 

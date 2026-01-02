@@ -19,9 +19,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th>名稱/代號</th>
-                                <th>目前價格</th>
+                                <th>成交</th>
                                 <th>漲跌幅</th>
-                                <th>開盤價</th>
+                                <th>開盤</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -29,14 +29,15 @@
                             <tr>
                                 <td>
                                     <div class="fw-bold">{{ stock.name }}</div>
-                                    <small class="text-muted">{{ stock.etf_code }}</small>
+                                    <small class="text-muted">{{ stock.code }}</small>
                                 </td>
-                                <td>${{ stock.annual_return * 5 }} (示範價)</td> <td>
+                                <td>{{ stock.price }}</td>
+                                <td>
                                     <span class="badge {% if stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
                                         {{ '+' if stock.annual_return > 0 }}{{ stock.annual_return }}%
                                     </span>
                                 </td>
-                                <td>${{ stock.annual_return * 4.8 }}</td>
+                                <td>{{ stock.open }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -45,7 +46,44 @@
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">您購買的ETF資訊</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>名稱/代號</th>
+                                <th>成交</th>
+                                <th>漲跌幅</th>
+                                <th>開盤</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for my_stock in my_stocks %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ my_stock.name }}</div>
+                                    <small class="text-muted">{{ my_stock.code }}</small>
+                                </td>
+                                <td>{{ my_stock.price }}</td>
+                                <td>
+                                    <span class="badge {% if my_stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
+                                    </span>
+                                </td>
+                                <td>{{ my_stock.open }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 d-none">
             <div class="card-body text-center py-5">
                 <h5 class="text-muted">近 1 月漲幅趨勢圖</h5>
                 <p class="small text-secondary">(未來可在此處載入 Chart.js 或 Plotly 動態圖表)</p>
@@ -67,7 +105,7 @@
                     <div>
                         <span class="fw-bold text-primary">#{{ loop.index }}</span> {{ rank.name }}
                     </div>
-                    <span class="text-danger fw-bold">+{{ rank.annual_return }}%</span>
+                    <span class="text-danger fw-bold">{{ '+' if rank.annual_return > 0 }}{{ rank.annual_return }}%</span>
                 </div>
                 {% endfor %}
             </div>
