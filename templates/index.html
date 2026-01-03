@@ -33,8 +33,8 @@
                                 </td>
                                 <td>{{ stock.price }}</td>
                                 <td>
-                                    <span class="badge {% if stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
-                                        {{ '+' if stock.annual_return > 0 }}{{ stock.annual_return }}%
+                                    <span class="badge {% if stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ '+' if stock.change > 0 }}{{ stock.change }}%
                                     </span>
                                 </td>
                                 <td>{{ stock.open }}</td>
@@ -59,6 +59,7 @@
                                 <th>成交</th>
                                 <th>漲跌幅</th>
                                 <th>開盤</th>
+                                <th>報酬率</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -70,11 +71,12 @@
                                 </td>
                                 <td>{{ my_stock.price }}</td>
                                 <td>
-                                    <span class="badge {% if my_stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
-                                        {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
+                                    <span class="badge {% if my_stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ '+' if my_stock.change > 0 }}{{ my_stock.change }}%
                                     </span>
                                 </td>
                                 <td>{{ my_stock.open }}</td>
+                                <td>{{ my_stock.annual_return }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

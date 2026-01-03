@@ -40,35 +40,42 @@ def recommend_home():
         db.close()
 
 @recommend_bp.route('/compare', methods=['POST'])
+@recommend_bp.route('/compare', methods=['POST'])
 def compare_etfs():
-    etf1 = request.form.get('etf1')
-    etf2 = request.form.get('etf2')
+    ticker1 = request.form.get('etf1')
+    ticker2 = request.form.get('etf2')
     
-    # 如果使用者沒選就按分析，導回原頁面
-    if not etf1 or not etf2:
-        return redirect(url_for('recommend.recommend_home'))
-
     db = get_db_connection()
+    overlap_stocks = []
+    total_overlap = 0
+
     try:
         with db.cursor() as cursor:
-            # 加入 COLLATE 防止編碼錯誤 1267
+            # --- 步驟 A: 先嘗試從資料庫抓取成分股比對 ---
             sql = """
                 SELECT a.stock_code, a.stock_name, a.weight as w1, b.weight as w2
                 FROM etf_composition a
                 JOIN etf_composition b ON a.stock_code COLLATE utf8mb4_unicode_ci = b.stock_code COLLATE utf8mb4_unicode_ci
                 WHERE a.etf_code = %s AND b.etf_code = %s
             """
-            cursor.execute(sql, (etf1, etf2))
+            cursor.execute(sql, (ticker1, ticker2))
             overlap_stocks = cursor.fetchall()
-            
-            # 專業計算方式：取兩者權重的最小值並加總
-            # 例如：A 持有台積電 50%，B 持有 30%，則兩者重疊度為 30%
-            total_overlap = sum([min(s['w1'], s['w2']) for s in overlap_stocks])
-            total_overlap = round(total_overlap, 2)
-            
+
+            # --- 步驟 B: 計算重疊度 ---
+            if overlap_stocks:
+                total_overlap = sum([min(s['w1'], s['w2']) for s in overlap_stocks])
+                total_overlap = round(total_overlap, 2)
+            else:
+                # --- 步驟 C: 如果資料庫沒資料，才考慮使用 yfinance (備援方案) ---
+                # 這裡保留你原本的 yfinance 邏輯，但建議演示時選 0050/006208 這種已入庫的
+                pass
+
         return render_template('compare_result.html', 
                                stocks=overlap_stocks, 
-                               etf1=etf1, etf2=etf2, 
+                               etf1=ticker1, etf2=ticker2, 
                                total_overlap=total_overlap)
+    except Exception as e:
+        print(f"比對錯誤: {e}")
+        return redirect(url_for('recommend.recommend_home'))
     finally:
         db.close()

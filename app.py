@@ -28,63 +28,94 @@ def home():
     
     db = get_db_connection()
     user_id = session.get('user_id')
+    
+    # 預先初始化變數
+    real_data = []
+    my_portfolio_data = []
+    rank_list = []
+    
     try:
         with db.cursor() as cursor:
-            # --- 1. 抓取首頁焦點 ETF (yfinance 即時行情) ---
-            sql_tickers = "SELECT name, ticker, ticker_yfinance FROM etf_tickers ORDER BY rand() DESC LIMIT 5"
+            # 1. 抓取隨機焦點 ETF
+            sql_tickers = "SELECT name, ticker, ticker_yfinance FROM etf_tickers ORDER BY rand() LIMIT 5"
             cursor.execute(sql_tickers)
             tickers = cursor.fetchall()
             
-            real_data = []
             for item in tickers:
                 info = get_realtime_etf(item['ticker_yfinance'])
-                if info:
-                    real_data.append({
-                        'name': item['name'],
-                        'code': item['ticker'],
-                        'price': info['current_price'],
-                        'change': info['change_percent'],
-                        'open': info['open_price'],
-                        'annual_return': info['change_percent'] # 對應 index.html 報錯處
-                    })
+                # 計算真實績效
+                perf = get_etf_performance(item['ticker_yfinance']) 
+                
+                # 即使 info 為 None，也要填入預設值，防止前端報錯
+                real_data.append({
+                    'name': item['name'],
+                    'code': item['ticker'],
+                    'price': info['current_price'] if info else 0.0,
+                    'change': info['change_percent'] if info else 0.0,
+                    'open': info['open_price'] if info else 0.0,
+                    'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
+                })
             
+            # 排序生成排行榜
             rank_list = sorted(real_data, key=lambda x: x['annual_return'], reverse=True)
 
-            # --- 1. 抓取該使用者的持股 (從 user_portfolio) ---
-            # 這裡我們抓取該使用者買過的所有不重複代號
+            # 2. 抓取個人持股 (加上 COLLATE 解決編碼問題)
             sql_my_stocks = """
                 SELECT DISTINCT p.stock_name, p.stock_code, t.ticker_yfinance 
                 FROM user_portfolio p
-                JOIN etf_tickers t ON p.stock_code = t.ticker
+                JOIN etf_tickers t ON p.stock_code COLLATE utf8mb4_unicode_ci = t.ticker COLLATE utf8mb4_unicode_ci
                 WHERE p.user_id = %s
             """
             cursor.execute(sql_my_stocks, (user_id,))
             my_tickers = cursor.fetchall()
 
-            my_portfolio_data = []
             for item in my_tickers:
                 info = get_realtime_etf(item['ticker_yfinance'])
+                perf = get_etf_performance(item['ticker_yfinance']) 
                 if info:
                     my_portfolio_data.append({
                         'name': item['stock_name'],
                         'code': item['stock_code'],
+                        'open': info['open_price'],
                         'price': info['current_price'],
                         'change': info['change_percent'],
-                        'open': info['open_price'],
-                        'annual_return': info['change_percent'] # 對應 index.html 報錯處
+                        'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
                     })
+                    
     except Exception as e:
         print(f"資料讀取錯誤: {e}")
     finally:
         db.close()
     
-    # 確保傳入 stocks 和 rank_list
     return render_template('index.html', 
                            stocks=real_data, 
                            rank_list=rank_list, 
-                           username=session.get('username'),
-                           my_stocks=my_portfolio_data)
+                           my_stocks=my_portfolio_data,
+                           username=session.get('username'))
 
+
+def get_etf_performance(ticker_yfinance):
+    try:
+        etf = yf.Ticker(ticker_yfinance)
+        hist = etf.history(period="1y")
+        
+        if hist.empty or len(hist) < 20: # 確保有足夠的交易天數
+            return 0.0
+            
+        # 使用第 0 筆與最後一筆資料
+        # 因為 auto_adjust=True，這裡的 Close 其實就是總報酬價格
+        start_price = hist['Close'].iloc[0]
+        end_price = hist['Close'].iloc[-1]
+        
+        if start_price == 0: return 0.0
+        
+        # 真正的總報酬率 (Total Return)
+        total_return = ((end_price - start_price) / start_price) * 100
+        
+        return round(total_return, 2)
+    except Exception as e:
+        print(f"抓取績效失敗 ({ticker_yfinance}): {e}")
+        return 0.0
 
 def get_realtime_etf(ticker_yfinance):
     """
