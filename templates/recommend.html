@@ -17,32 +17,29 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <h5 class="card-title">{{ etf.name }}</h5>
-                            <span class="text-muted fw-bold">{{ etf.etf_code }}</span>
+                            <span class="text-muted fw-bold">{{ etf.ticker }}</span>
                         </div>
                         <hr>
                         <div class="row text-center mt-3">
                             <div class="col-4">
-                                <small class="text-muted d-block">1年報酬</small>
-                                <span class="text-danger fw-bold">{{ etf.annual_return }}%</span>
+                                <small class="text-muted d-block">市場分類</small>
+                                <span class="text-primary fw-bold">{{ etf.type_name }}</span>
                             </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">夏普值</small>
-                                <span class="fw-bold">{{ etf.sharpe_ratio }}</span>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">波動率</small>
-                                <span class="fw-bold">{{ etf.volatility }}%</span>
+                            <div class="col-8 text-end">
+                                <small class="text-muted d-block">操作建議</small>
+                                <span class="badge bg-info text-dark">適合{{ user_risk }}投資者</span>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-0 pb-3">
-                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.etf_code }}')">加入比對</button>
+                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.ticker }}')">加入比對</button>
                     </div>
                 </div>
             </div>
             {% else %}
-            <div class="col-12 text-center text-muted">
-                目前該等級尚無推薦項目。
+            <div class="col-12 text-center text-muted py-5">
+                <p>目前「{{ user_risk }}」尚無對應推薦項目。</p>
+                <a href="/auth/profile" class="btn btn-sm btn-secondary">去修改我的風險等級</a>
             </div>
             {% endfor %}
         </div>
@@ -51,17 +48,17 @@
     <div class="col-lg-4">
         <div class="card shadow border-primary sticky-top" style="top: 20px;">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">ETF 重複性健檢</h5>
+                <h5 class="mb-0">🔍 ETF 重複性健檢</h5>
             </div>
             <div class="card-body">
-                <p class="small text-muted">選擇兩檔 ETF，分析它們底層成分股是否過度集中，避免「假分散」投資風險。</p>
+                <p class="small text-muted">選擇兩檔 ETF，分析它們底層成分股是否過度集中。</p>
                 <form action="{{ url_for('recommend.compare_etfs') }}" method="POST">
                     <div class="mb-3">
                         <label class="form-label">第一檔 ETF</label>
                         <select name="etf1" id="etf_select1" class="form-select" required>
                             <option value="">請選擇...</option>
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.etf_code }}">{{ a_etf.etf_code }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -70,7 +67,7 @@
                         <select name="etf2" id="etf_select2" class="form-select" required>
                             <option value="">請選擇...</option>
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.etf_code }}">{{ a_etf.etf_code }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -82,13 +79,12 @@
 </div>
 
 <script>
-    // 讓使用者點擊卡片按鈕時，自動填入比對下拉選單
     function setCompare(code) {
         let s1 = document.getElementById('etf_select1');
         let s2 = document.getElementById('etf_select2');
         if (!s1.value) {
             s1.value = code;
-        } else {
+        } else if (s1.value !== code) {
             s2.value = code;
         }
     }

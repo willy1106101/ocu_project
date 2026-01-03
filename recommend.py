@@ -6,8 +6,6 @@ recommend_bp = Blueprint('recommend', __name__)
 @recommend_bp.route('/recommend')
 def recommend_home():
     user_risk = session.get('risk_level', '中風險')
-    
-    # 定義類型的邏輯對應
     risk_map = {
         '低風險': (1,), 
         '中風險': (2, 4, 10), 
@@ -18,13 +16,19 @@ def recommend_home():
     db = get_db_connection()
     try:
         with db.cursor() as cursor:
-            # 1. 抓取符合該風險類型的 ETF
+            # --- 修正後的 SQL：使用 JOIN 抓取類型名稱 ---
             format_strings = ','.join(['%s'] * len(target_types))
-            sql = f"SELECT name, ticker FROM etf_tickers WHERE types IN ({format_strings}) LIMIT 6"
+            sql = f"""
+                SELECT t.name, t.ticker, ty.name as type_name 
+                FROM etf_tickers t
+                JOIN etf_types ty ON t.types = ty.id
+                WHERE t.types IN ({format_strings}) 
+                LIMIT 6
+            """
             cursor.execute(sql, target_types)
             recommended_etfs = cursor.fetchall()
             
-            # 2. 抓取「所有」ETF 供比對下拉選單使用 (這會顯示 300 多檔)
+            # 抓取所有 ETF 供下拉選單
             cursor.execute("SELECT ticker, name FROM etf_tickers ORDER BY ticker ASC")
             all_etfs = cursor.fetchall()
             
@@ -40,21 +44,27 @@ def compare_etfs():
     etf1 = request.form.get('etf1')
     etf2 = request.form.get('etf2')
     
+    # 如果使用者沒選就按分析，導回原頁面
+    if not etf1 or not etf2:
+        return redirect(url_for('recommend.recommend_home'))
+
     db = get_db_connection()
     try:
         with db.cursor() as cursor:
-            # 找出兩檔 ETF 的共同成分股
+            # 加入 COLLATE 防止編碼錯誤 1267
             sql = """
                 SELECT a.stock_code, a.stock_name, a.weight as w1, b.weight as w2
                 FROM etf_composition a
-                JOIN etf_composition b ON a.stock_code = b.stock_code
+                JOIN etf_composition b ON a.stock_code COLLATE utf8mb4_unicode_ci = b.stock_code COLLATE utf8mb4_unicode_ci
                 WHERE a.etf_code = %s AND b.etf_code = %s
             """
             cursor.execute(sql, (etf1, etf2))
             overlap_stocks = cursor.fetchall()
             
-            # 計算平均重疊權重 (這只是簡單指標)
-            total_overlap = sum([(s['w1'] + s['w2']) / 2 for s in overlap_stocks])
+            # 專業計算方式：取兩者權重的最小值並加總
+            # 例如：A 持有台積電 50%，B 持有 30%，則兩者重疊度為 30%
+            total_overlap = sum([min(s['w1'], s['w2']) for s in overlap_stocks])
+            total_overlap = round(total_overlap, 2)
             
         return render_template('compare_result.html', 
                                stocks=overlap_stocks, 
