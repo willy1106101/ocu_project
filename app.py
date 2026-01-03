@@ -1,5 +1,6 @@
 from flask import Flask, redirect, url_for, render_template, session
 import yfinance as yf
+import datetime
 from auth import auth_bp
 from portfolio import portfolio_bp
 from recommend import recommend_bp
@@ -44,7 +45,7 @@ def home():
             for item in tickers:
                 info = get_realtime_etf(item['ticker_yfinance'])
                 # 計算真實績效
-                perf = get_etf_performance(item['ticker_yfinance']) 
+                perf = get_exact_performance(item['ticker_yfinance']) 
                 
                 # 即使 info 為 None，也要填入預設值，防止前端報錯
                 real_data.append({
@@ -71,7 +72,7 @@ def home():
 
             for item in my_tickers:
                 info = get_realtime_etf(item['ticker_yfinance'])
-                perf = get_etf_performance(item['ticker_yfinance']) 
+                perf = get_exact_performance(item['ticker_yfinance']) 
                 if info:
                     my_portfolio_data.append({
                         'name': item['stock_name'],
@@ -94,27 +95,26 @@ def home():
                            username=session.get('username'))
 
 
-def get_etf_performance(ticker_yfinance):
+
+def get_exact_performance(ticker_yfinance):
     try:
         etf = yf.Ticker(ticker_yfinance)
-        hist = etf.history(period="1y")
+        # 取得今年 1 月 1 日的日期
+        this_year_start = datetime.datetime(datetime.datetime.now().year, 1, 1)
         
-        if hist.empty or len(hist) < 20: # 確保有足夠的交易天數
-            return 0.0
-            
-        # 使用第 0 筆與最後一筆資料
-        # 因為 auto_adjust=True，這裡的 Close 其實就是總報酬價格
+        # 抓取從今年初到現在的資料 (YTD)
+        hist = etf.history(start=this_year_start)
+        
+        if hist.empty or len(hist) < 2:
+            # 如果今年資料太少，改抓滾動一年
+            hist = etf.history(period="1y")
+
         start_price = hist['Close'].iloc[0]
         end_price = hist['Close'].iloc[-1]
         
-        if start_price == 0: return 0.0
-        
-        # 真正的總報酬率 (Total Return)
-        total_return = ((end_price - start_price) / start_price) * 100
-        
-        return round(total_return, 2)
-    except Exception as e:
-        print(f"抓取績效失敗 ({ticker_yfinance}): {e}")
+        # 使用調整後的收盤價計算
+        return round(((end_price - start_price) / start_price) * 100, 2)
+    except:
         return 0.0
 
 def get_realtime_etf(ticker_yfinance):
