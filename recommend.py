@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for
 from models import get_db_connection
+import yfinance as yf
+import pandas as pd
 
 recommend_bp = Blueprint('recommend', __name__)
 
@@ -19,7 +21,7 @@ def recommend_home():
             # --- 修正後的 SQL：使用 JOIN 抓取類型名稱 ---
             format_strings = ','.join(['%s'] * len(target_types))
             sql = f"""
-                SELECT t.name, t.ticker, ty.name as type_name 
+                SELECT t.name, t.ticker, t.ticker_yfinance, ty.name as type_name 
                 FROM etf_tickers t
                 JOIN etf_types ty ON t.types = ty.id
                 WHERE t.types IN ({format_strings}) 
@@ -29,7 +31,7 @@ def recommend_home():
             recommended_etfs = cursor.fetchall()
             
             # 抓取所有 ETF 供下拉選單
-            cursor.execute("SELECT ticker, name FROM etf_tickers ORDER BY ticker ASC")
+            cursor.execute("SELECT ticker, name, ticker_yfinance FROM etf_tickers ORDER BY ticker ASC")
             all_etfs = cursor.fetchall()
             
         return render_template('recommend.html', 
@@ -39,43 +41,60 @@ def recommend_home():
     finally:
         db.close()
 
-@recommend_bp.route('/compare', methods=['POST'])
+
 @recommend_bp.route('/compare', methods=['POST'])
 def compare_etfs():
     ticker1 = request.form.get('etf1')
     ticker2 = request.form.get('etf2')
-    
     db = get_db_connection()
-    overlap_stocks = []
-    total_overlap = 0
-
     try:
+        # 1️⃣ 從資料庫抓 ETF 名稱
         with db.cursor() as cursor:
-            # --- 步驟 A: 先嘗試從資料庫抓取成分股比對 ---
             sql = """
-                SELECT a.stock_code, a.stock_name, a.weight as w1, b.weight as w2
-                FROM etf_composition a
-                JOIN etf_composition b ON a.stock_code COLLATE utf8mb4_unicode_ci = b.stock_code COLLATE utf8mb4_unicode_ci
-                WHERE a.etf_code = %s AND b.etf_code = %s
+                SELECT ticker, ticker_yfinance, name
+                FROM etf_tickers
+                WHERE ticker_yfinance = %s OR ticker_yfinance = %s
             """
             cursor.execute(sql, (ticker1, ticker2))
-            overlap_stocks = cursor.fetchall()
+            detail_etfs = cursor.fetchall()
 
-            # --- 步驟 B: 計算重疊度 ---
-            if overlap_stocks:
-                total_overlap = sum([min(s['w1'], s['w2']) for s in overlap_stocks])
-                total_overlap = round(total_overlap, 2)
-            else:
-                # --- 步驟 C: 如果資料庫沒資料，才考慮使用 yfinance (備援方案) ---
-                # 這裡保留你原本的 yfinance 邏輯，但建議演示時選 0050/006208 這種已入庫的
-                pass
+        # 轉成字典方便查找名稱
+        ticker_name_map = {d['ticker_yfinance']: [d['name'],d['ticker']] for d in detail_etfs}
+        etf1 = ticker_name_map.get(ticker1, ticker1)
+        etf2 = ticker_name_map.get(ticker2, ticker2)
 
-        return render_template('compare_result.html', 
-                               stocks=overlap_stocks, 
-                               etf1=ticker1, etf2=ticker2, 
-                               total_overlap=total_overlap)
+        # 2️⃣ 抓價格資料
+        df1 = yf.Ticker(ticker1).history(period="3mo")
+        df2 = yf.Ticker(ticker2).history(period="3mo")
+
+        if df1.empty or df2.empty:
+            raise ValueError(f"價格資料不足：{ticker1}, {ticker2}")
+
+        # 3️⃣ 計算振幅
+        for df in (df1, df2):
+            df["y_close"] = df["Close"].shift(1)
+            df["amplitude"] = (df["High"] - df["Low"]) / df["y_close"] * 100
+
+        df1 = df1.reset_index()[["Date", "amplitude"]]
+        df2 = df2.reset_index()[["Date", "amplitude"]]
+
+        merged = pd.merge(df1, df2, on="Date", suffixes=("_1", "_2"))
+
+        # 安全處理 None / NaN
+        corr = merged["amplitude_1"].corr(merged["amplitude_2"])
+        corr = None if corr is None or pd.isna(corr) else round(float(corr), 3)
+
+        # 4️⃣ 傳給 template
+        return render_template(
+            "compare_result.html",
+            etf1_code=etf1,
+            etf2_code=etf2,
+            amplitude_corr=corr
+        )
+
     except Exception as e:
-        print(f"比對錯誤: {e}")
-        return redirect(url_for('recommend.recommend_home'))
+        print("重疊分析錯誤:", e)
+        return redirect(url_for("recommend.recommend_home"))
     finally:
         db.close()
+

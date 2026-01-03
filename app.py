@@ -46,6 +46,7 @@ def home():
                 info = get_realtime_etf(item['ticker_yfinance'])
                 # 計算真實績效
                 perf = get_exact_performance(item['ticker_yfinance']) 
+                last_close = get_yesterday_close(item['ticker_yfinance'])
                 
                 # 即使 info 為 None，也要填入預設值，防止前端報錯
                 real_data.append({
@@ -54,6 +55,7 @@ def home():
                     'price': info['current_price'] if info else 0.0,
                     'change': info['change_percent'] if info else 0.0,
                     'open': info['open_price'] if info else 0.0,
+                    'last_close': last_close if last_close else 0.0,
                     'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
                 })
             
@@ -73,6 +75,8 @@ def home():
             for item in my_tickers:
                 info = get_realtime_etf(item['ticker_yfinance'])
                 perf = get_exact_performance(item['ticker_yfinance']) 
+                last_close = get_yesterday_close(item['ticker_yfinance'])
+                amp = get_amplitude(item["ticker_yfinance"])
                 if info:
                     my_portfolio_data.append({
                         'name': item['stock_name'],
@@ -80,6 +84,8 @@ def home():
                         'open': info['open_price'],
                         'price': info['current_price'],
                         'change': info['change_percent'],
+                        'last_close': last_close if last_close else 0.0,
+                        'amp': amp if amp else 0.0,
                         'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
                     })
                     
@@ -94,28 +100,55 @@ def home():
                            my_stocks=my_portfolio_data,
                            username=session.get('username'))
 
+def get_amplitude(ticker_yfinance):
+    try:
+        ticker = yf.Ticker(ticker_yfinance)
 
+        # 抓最近 5 天，避免假日
+        hist = ticker.history(period="5d")
+
+        if hist.empty or len(hist) < 2:
+            return None
+
+        # 今日資料
+        today = hist.iloc[-1]
+
+        # 昨收價（前一交易日）
+        yesterday_close = hist["Close"].iloc[-2]
+
+        high_price = today["High"]
+        low_price = today["Low"]
+
+        amplitude = (high_price - low_price) / yesterday_close * 100
+
+        return round(float(amplitude), 2)
+
+    except Exception as e:
+        print(f"{ticker_yfinance} error:", e)
+        return None
 
 def get_exact_performance(ticker_yfinance):
     try:
         etf = yf.Ticker(ticker_yfinance)
-        # 取得今年 1 月 1 日的日期
-        this_year_start = datetime.datetime(datetime.datetime.now().year, 1, 1)
-        
-        # 抓取從今年初到現在的資料 (YTD)
-        hist = etf.history(start=this_year_start)
-        
-        if hist.empty or len(hist) < 2:
-            # 如果今年資料太少，改抓滾動一年
-            hist = etf.history(period="1y")
+        hist = etf.history(period="1y")
 
-        start_price = hist['Close'].iloc[0]
-        end_price = hist['Close'].iloc[-1]
-        
-        # 使用調整後的收盤價計算
-        return round(((end_price - start_price) / start_price) * 100, 2)
-    except:
-        return 0.0
+        if hist.empty:
+            return None
+
+        # 台股 ETF 通常沒有 Adj Close
+        price_col = "Adj Close" if "Adj Close" in hist.columns else "Close"
+
+        start_price = hist[price_col].iloc[0]
+        end_price = hist[price_col].iloc[-1]
+        print(start_price,end_price)
+
+        return round(((end_price - start_price) / start_price)* 100, 2)
+
+    except Exception as e:
+        print(f"{ticker_yfinance} error:", e)
+        return None
+
+
 
 def get_realtime_etf(ticker_yfinance):
     """
@@ -131,7 +164,7 @@ def get_realtime_etf(ticker_yfinance):
         
         if hist.empty:
             return None
-            
+  
         # 取得最新一筆與前一筆的資料
         latest_data = hist.iloc[-1]
         prev_close = hist['Close'].iloc[0]
@@ -150,6 +183,26 @@ def get_realtime_etf(ticker_yfinance):
         }
     except Exception as e:
         print(f"抓取資料發生錯誤 ({ticker_yfinance}): {e}")
+        return None
+
+
+def get_yesterday_close(ticker_yfinance):
+    try:
+        ticker = yf.Ticker(ticker_yfinance)
+
+        # 抓最近 5 天，避免遇到假日
+        hist = ticker.history(period="5d")
+
+        if hist.empty or len(hist) < 2:
+            return None
+
+        # 昨收 = 倒數第 2 個交易日的 Close
+        yesterday_close = hist["Close"].iloc[-2]
+
+        return round(float(yesterday_close), 2)
+
+    except Exception as e:
+        print(f"{ticker_yfinance} error:", e)
         return None
 
 if __name__ == '__main__':

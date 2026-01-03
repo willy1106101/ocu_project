@@ -32,7 +32,7 @@
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-0 pb-3">
-                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.ticker }}')">加入比對</button>
+                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.ticker_yfinance }}')">加入比對</button>
                     </div>
                 </div>
             </div>
@@ -48,7 +48,7 @@
     <div class="col-lg-4">
         <div class="card shadow border-primary sticky-top" style="top: 20px;">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">🔍 ETF 重複性健檢</h5>
+                <h5 class="mb-0">ETF 重複性健檢</h5>
             </div>
             <div class="card-body">
                 <p class="small text-muted">選擇兩檔 ETF，分析它們底層成分股是否過度集中。</p>
@@ -58,7 +58,7 @@
                         <select name="etf1" id="etf_select1" class="form-select" required>
                             <option value="">請選擇...</option>
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.ticker }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker_yfinance }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -67,7 +67,7 @@
                         <select name="etf2" id="etf_select2" class="form-select" required>
                             <option value="">請選擇...</option>
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.ticker }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker_yfinance }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
