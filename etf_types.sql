@@ -1,0 +1,10 @@
+INSERT INTO `etf_types` (`id`, `name`) VALUES (1, '債券型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (2, '市值型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (3, '產業型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (4, '配息型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (5, '區域型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (6, '反向型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (7, '槓桿型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (8, '商品期貨型 ETF');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (9, '其他/未分類');
+INSERT INTO `etf_types` (`id`, `name`) VALUES (10, '價值/成長/主題型 ETF');
