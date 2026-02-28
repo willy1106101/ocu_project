@@ -30,75 +30,129 @@ def home():
     db = get_db_connection()
     user_id = session.get('user_id')
     
-    # 預先初始化變數
     real_data = []
     my_portfolio_data = []
     rank_list = []
     
     try:
         with db.cursor() as cursor:
-            # 1. 抓取隨機焦點 ETF
-            sql_tickers = "SELECT name, ticker, ticker_yfinance FROM etf_tickers ORDER BY rand() LIMIT 5"
+
+            # ========= 1️⃣ 隨機焦點 ETF =========
+            sql_tickers = """
+                SELECT name, ticker, ticker_yfinance 
+                FROM etf_tickers 
+                ORDER BY rand() 
+                LIMIT 5
+            """
             cursor.execute(sql_tickers)
             tickers = cursor.fetchall()
-            
+
             for item in tickers:
-                info = get_realtime_etf(item['ticker_yfinance'])
-                # 計算真實績效
-                perf = get_exact_performance(item['ticker_yfinance']) 
-                last_close = get_yesterday_close(item['ticker_yfinance'])
-                
-                # 即使 info 為 None，也要填入預設值，防止前端報錯
+                info = get_etf_snapshot(item['ticker_yfinance'])
+
                 real_data.append({
                     'name': item['name'],
                     'code': item['ticker'],
-                    'price': info['current_price'] if info else 0.0,
-                    'change': info['change_percent'] if info else 0.0,
-                    'open': info['open_price'] if info else 0.0,
-                    'last_close': last_close if last_close else 0.0,
-                    'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
+                    'price': info['price'] if info else 0.0,
+                    'change': info['change'] if info else 0.0,
+                    'open': info['open'] if info else 0.0,
+                    'last_close': info['last_close'] if info else 0.0,
+                    'annual_return': info['annual_return'] if info else 0.0
                 })
-            
-            # 排序生成排行榜
-            rank_list = sorted(real_data, key=lambda x: x['annual_return'], reverse=True)
 
-            # 2. 抓取個人持股 (加上 COLLATE 解決編碼問題)
+            # 排序產生排行榜
+            rank_list = sorted(
+                real_data,
+                key=lambda x: x['annual_return'],
+                reverse=True
+            )
+
+            # ========= 2️⃣ 個人持股 =========
             sql_my_stocks = """
                 SELECT DISTINCT p.stock_name, p.stock_code, t.ticker_yfinance 
                 FROM user_portfolio p
-                JOIN etf_tickers t ON p.stock_code COLLATE utf8mb4_unicode_ci = t.ticker COLLATE utf8mb4_unicode_ci
+                JOIN etf_tickers t 
+                  ON p.stock_code COLLATE utf8mb4_unicode_ci 
+                   = t.ticker COLLATE utf8mb4_unicode_ci
                 WHERE p.user_id = %s
             """
             cursor.execute(sql_my_stocks, (user_id,))
             my_tickers = cursor.fetchall()
 
             for item in my_tickers:
-                info = get_realtime_etf(item['ticker_yfinance'])
-                perf = get_exact_performance(item['ticker_yfinance']) 
-                last_close = get_yesterday_close(item['ticker_yfinance'])
-                amp = get_amplitude(item["ticker_yfinance"])
+                info = get_etf_snapshot(item['ticker_yfinance'])
+
                 if info:
                     my_portfolio_data.append({
                         'name': item['stock_name'],
                         'code': item['stock_code'],
-                        'open': info['open_price'],
-                        'price': info['current_price'],
-                        'change': info['change_percent'],
-                        'last_close': last_close if last_close else 0.0,
-                        'amp': amp if amp else 0.0,
-                        'annual_return': perf if perf else 0.0  # 確保 Key 一定存在
+                        'open': info['open'],
+                        'price': info['price'],
+                        'change': info['change'],
+                        'last_close': info['last_close'],
+                        'amp': info['amp'],
+                        'annual_return': info['annual_return']
                     })
-                    
+
     except Exception as e:
         print(f"資料讀取錯誤: {e}")
+
     finally:
         db.close()
-    
-    return render_template('index.html', 
-                           stocks=real_data, 
-                           rank_list=rank_list, 
-                           my_stocks=my_portfolio_data,
-                           username=session.get('username'))
+
+    return render_template(
+        'index.html',
+        stocks=real_data,
+        rank_list=rank_list,
+        my_stocks=my_portfolio_data,
+        username=session.get('username')
+    )
+
+def get_etf_snapshot(ticker_yfinance):
+    try:
+        ticker = yf.Ticker(ticker_yfinance)
+
+        hist_1y = ticker.history(period="1y")
+        hist_5d = ticker.history(period="5d")
+
+        if hist_5d.empty:
+            return None
+
+        # ==== 即時價格 ====
+        latest = hist_5d.iloc[-1]
+        prev = hist_5d.iloc[-2] if len(hist_5d) >= 2 else latest
+
+        current_price = latest["Close"]
+        open_price = latest["Open"]
+        yesterday_close = prev["Close"]
+
+        change_percent = ((current_price - yesterday_close) / yesterday_close) * 100
+
+        # ==== 振幅 ====
+        amplitude = ((latest["High"] - latest["Low"]) / yesterday_close) * 100
+
+        # ==== 年報酬 ====
+        if not hist_1y.empty:
+            price_col = "Adj Close" if "Adj Close" in hist_1y.columns else "Close"
+            start_price = hist_1y[price_col].iloc[0]
+            end_price = hist_1y[price_col].iloc[-1]
+            annual_return = ((end_price - start_price) / start_price) * 100
+        else:
+            annual_return = 0
+
+        return {
+            "price": round(current_price, 2),
+            "change": round(change_percent, 2),
+            "open": round(open_price, 2),
+            "last_close": round(yesterday_close, 2),
+            "amp": round(amplitude, 2),
+            "annual_return": round(annual_return, 2)
+        }
+
+    except Exception as e:
+        print(ticker_yfinance, e)
+        return None
+
 
 def get_amplitude(ticker_yfinance):
     try:
