@@ -39,7 +39,7 @@
             {% else %}
             <div class="col-12 text-center text-muted py-5">
                 <p>目前「{{ user_risk }}」尚無對應推薦項目。</p>
-                <a href="/auth/profile" class="btn btn-sm btn-secondary">去修改我的風險等級</a>
+                <a href="{{ url_for('auth.profile') }}" class="btn btn-sm btn-secondary">去修改我的風險等級</a>
             </div>
             {% endfor %}
         </div>
