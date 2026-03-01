@@ -33,47 +33,40 @@ def home():
     real_data = []
     my_portfolio_data = []
     rank_list = []
+    # 💡 新增：儲存總產業分佈的字典
+    all_sector_dist = {}
     
     try:
         with db.cursor() as cursor:
-
-            # ========= 1️⃣ 隨機焦點 ETF =========
-            sql_tickers = """
-                SELECT name, ticker, ticker_yfinance 
-                FROM etf_tickers 
-                ORDER BY rand() 
-                LIMIT 5
+            # --- 1. 抓取成分股與產業的對照字典 ---
+            sql_mapping = """
+                SELECT m.name_en, s.sector_name 
+                FROM stock_name_map m
+                LEFT JOIN stock_sectors s ON m.sector_id = s.id
             """
+            cursor.execute(sql_mapping)
+            # 建立字典: {'英文名稱': '產業名稱'}
+            sector_lookup = {r['name_en']: r['sector_name'] for r in cursor.fetchall()}
+
+            # --- 2. 隨機焦點 ETF (維持原樣) ---
+            sql_tickers = "SELECT name, ticker, ticker_yfinance FROM etf_tickers ORDER BY rand() LIMIT 5"
             cursor.execute(sql_tickers)
             tickers = cursor.fetchall()
-
             for item in tickers:
                 info = get_etf_snapshot(item['ticker_yfinance'])
+                if info:
+                    real_data.append({
+                        'name': item['name'], 'code': item['ticker'], 'price': info['price'],
+                        'change': info['change'], 'open': info['open'], 'last_close': info['last_close'],
+                        'annual_return': info['annual_return']
+                    })
+            rank_list = sorted(real_data, key=lambda x: x['annual_return'], reverse=True)
 
-                real_data.append({
-                    'name': item['name'],
-                    'code': item['ticker'],
-                    'price': info['price'] if info else 0.0,
-                    'change': info['change'] if info else 0.0,
-                    'open': info['open'] if info else 0.0,
-                    'last_close': info['last_close'] if info else 0.0,
-                    'annual_return': info['annual_return'] if info else 0.0
-                })
-
-            # 排序產生排行榜
-            rank_list = sorted(
-                real_data,
-                key=lambda x: x['annual_return'],
-                reverse=True
-            )
-
-            # ========= 2️⃣ 個人持股 =========
+            # --- 3. 個人持股與產業統計 ---
             sql_my_stocks = """
                 SELECT DISTINCT p.stock_name, p.stock_code, t.ticker_yfinance 
                 FROM user_portfolio p
-                JOIN etf_tickers t 
-                  ON p.stock_code COLLATE utf8mb4_unicode_ci 
-                   = t.ticker COLLATE utf8mb4_unicode_ci
+                JOIN etf_tickers t ON p.stock_code = t.ticker
                 WHERE p.user_id = %s
             """
             cursor.execute(sql_my_stocks, (user_id,))
@@ -81,22 +74,34 @@ def home():
 
             for item in my_tickers:
                 info = get_etf_snapshot(item['ticker_yfinance'])
-
                 if info:
                     my_portfolio_data.append({
-                        'name': item['stock_name'],
-                        'code': item['stock_code'],
-                        'open': info['open'],
-                        'price': info['price'],
-                        'change': info['change'],
-                        'last_close': info['last_close'],
-                        'amp': info['amp'],
-                        'annual_return': info['annual_return']
+                        'name': item['stock_name'], 'code': item['stock_code'], 'price': info['price'],
+                        'change': info['change'], 'annual_return': info['annual_return'], 'amp': info['amp']
                     })
+                    
+                    # 💡 關鍵：統計該 ETF 的產業分佈
+                    try:
+                        t = yf.Ticker(item['ticker_yfinance'])
+                        holdings = t.funds_data.top_holdings
+                        if holdings is not None and not holdings.empty:
+                            for i in range(len(holdings)):
+                                stock_en = str(holdings.iloc[i].iloc[0])
+                                weight = float(holdings.iloc[i].iloc[1]) * 100
+                                s_name = sector_lookup.get(stock_en, "其他")
+                                # 加總到全資產產業分佈
+                                all_sector_dist[s_name] = all_sector_dist.get(s_name, 0) + weight
+                    except: continue
+
+        # 整理產業資料給 Chart.js
+        dashboard_sector_analysis = sorted(
+            [{"label": k, "value": round(v, 2)} for k, v in all_sector_dist.items()],
+            key=lambda x: x['value'], reverse=True
+        )
 
     except Exception as e:
         print(f"資料讀取錯誤: {e}")
-
+        dashboard_sector_analysis = []
     finally:
         db.close()
 
@@ -105,7 +110,9 @@ def home():
         stocks=real_data,
         rank_list=rank_list,
         my_stocks=my_portfolio_data,
-        username=session.get('username')
+        username=session.get('username'),
+        # 💡 傳送到前端
+        dashboard_sector_analysis=dashboard_sector_analysis
     )
 
 def get_etf_snapshot(ticker_yfinance):

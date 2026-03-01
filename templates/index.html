@@ -3,13 +3,13 @@
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-lg text-white" style="background: linear-gradient(45deg, #0d6efd, #00d2ff); border-radius: 15px;">
+        <div class="card border-0 shadow-lg text-white"
+            style="background: linear-gradient(45deg, #0d6efd, #00d2ff); border-radius: 15px;">
             <div class="card-body p-4 p-md-5">
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h1 class="display-5 fw-bold mb-2">你好，{{ username }}！</h1>
                         <p class="lead mb-0">您的投資組合中是否隱藏了重複持股的風險？</p>
-                        <p class="small opacity-75">目前已追蹤全台 {{ stocks|length + my_stocks|length }} 檔熱門 ETF 數據</p>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
                         <a href="/recommend/recommend" class="btn btn-light btn-lg rounded-pill fw-bold px-4 shadow">
@@ -22,9 +22,9 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row mb-4">
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+        <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-chart-line me-2"></i>市場焦點 ETF</h5>
                 <span class="badge bg-light text-dark">即時更新</span>
@@ -37,7 +37,6 @@
                                 <th class="ps-4">名稱/代號</th>
                                 <th>成交價</th>
                                 <th>漲跌幅</th>
-                                <th>最高/最低</th>
                                 <th class="pe-4 text-end">昨收</th>
                             </tr>
                         </thead>
@@ -50,11 +49,12 @@
                                 </td>
                                 <td class="fw-bold">{{ stock.price }}</td>
                                 <td>
-                                    <span class="badge {% if stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}" style="min-width: 65px;">
+                                    <span
+                                        class="badge {% if stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}"
+                                        style="min-width: 65px;">
                                         {{ '+' if stock.change > 0 }}{{ stock.change }}%
                                     </span>
                                 </td>
-                                <td><small class="text-muted">{{ stock.open }} / {{ stock.last_close }}</small></td>
                                 <td class="pe-4 text-end text-secondary">{{ stock.last_close }}</td>
                             </tr>
                             {% endfor %}
@@ -63,7 +63,30 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-header bg-dark text-white py-3 border-0">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-trophy me-2 text-warning"></i>年度績效王</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for rank in rank_list %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center">
+                        <span class="fw-bold text-primary me-3">#{{ loop.index }}</span>
+                        <span class="fw-bold">{{ rank.name }}</span>
+                    </div>
+                    <span class="text-danger fw-bold">{{ rank.annual_return }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
             <div class="card-header bg-white py-3">
                 <h5 class="mb-0 fw-bold text-success"><i class="fas fa-wallet me-2"></i>您的資產概況</h5>
@@ -89,13 +112,15 @@
                                 </td>
                                 <td class="fw-bold">{{ my_stock.price }}</td>
                                 <td>
-                                    <span class="text-{% if my_stock.annual_return > 0 %}danger{% else %}success{% endif %} fw-bold">
+                                    <span
+                                        class="text-{% if my_stock.annual_return > 0 %}danger{% else %}success{% endif %} fw-bold">
                                         {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
                                     </span>
                                 </td>
                                 <td><span class="text-muted">{{ my_stock.amp }}%</span></td>
                                 <td class="pe-4 text-end">
-                                    <a href="/recommend/recommend" class="btn btn-outline-primary btn-sm rounded-pill">分析重疊</a>
+                                    <a href="/recommend/recommend"
+                                        class="btn btn-outline-primary btn-sm rounded-pill">分析重疊</a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -107,26 +132,57 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
-            <div class="card-header bg-dark text-white py-3 border-0">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-trophy me-2 text-warning"></i>年度績效王</h5>
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-chart-pie me-2"></i>資產產業配置</h5>
             </div>
-            <div class="list-group list-group-flush">
-                {% for rank in rank_list %}
-                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
-                            <span class="small fw-bold {% if loop.index == 1 %}text-warning{% else %}text-muted{% endif %}">{{ loop.index }}</span>
-                        </div>
-                        <span class="fw-bold">{{ rank.name }}</span>
-                    </div>
-                    <span class="badge bg-danger-soft text-danger fw-bold">{{ rank.annual_return }}%</span>
+            <div class="card-body d-flex flex-column align-items-center">
+                <div style="position: relative; height:200px; width:100%">
+                    <canvas id="userSectorChart"></canvas>
                 </div>
-                {% endfor %}
+                <div class="mt-4 w-100">
+                    {% for sector in dashboard_sector_analysis[:4] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="rounded-circle me-2"
+                                style="width: 10px; height: 10px; background-color: {{ ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6610f2'][loop.index0] }};"></span>
+                            <span class="small fw-bold">{{ sector.label }}</span>
+                        </div>
+                        <span class="badge bg-light text-primary rounded-pill">{{ sector.value }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
-
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('userSectorChart').getContext('2d');
+        const sectorData = {{ dashboard_sector_analysis | tojson
+    }};
+    if (sectorData.length > 0) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: sectorData.map(s => s.label),
+                datasets: [{
+                    data: sectorData.map(s => s.value),
+                    backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6610f2'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+    });
+</script>
 
 {% endblock %}

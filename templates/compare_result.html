@@ -16,6 +16,7 @@
                         <div class="col-md-5">
                             <div class="p-3 bg-light rounded shadow-sm">
                                 <h4 class="text-primary mb-0">{{ etf1_name }}</h4>
+                                <small class="text-muted">{{ etf1_type }}</small>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -24,6 +25,7 @@
                         <div class="col-md-5">
                             <div class="p-3 bg-light rounded shadow-sm">
                                 <h4 class="text-success mb-0">{{ etf2_name }}</h4>
+                                <small class="text-muted">{{ etf2_type }}</small>
                             </div>
                         </div>
                     </div>
@@ -31,8 +33,8 @@
                     <hr>
 
                     <div class="row mt-4">
-                        <div class="col-md-6 border-end">
-                            <h5 class="text-muted small">近三個月振幅相關性</h5>
+                        <div class="col-md-4 border-end">
+                            <h6 class="text-muted small">近三個月振幅相關性</h6>
                             {% if amplitude_corr is not none %}
                             <h2 class="fw-bold">{{ amplitude_corr }}</h2>
                             {% if amplitude_corr > 0.6 %}
@@ -47,13 +49,23 @@
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6">
-                            <h5 class="text-muted small">成分股重疊權重總和</h5>
+                        <div class="col-md-4 border-end">
+                            <h6 class="text-muted small">成分股重疊權重總和</h6>
                             <h2 class="fw-bold">{{ overlap_weight }}%</h2>
-                            <div class="progress mx-auto" style="width: 80%; height: 10px;">
+                            <div class="progress mx-auto mb-2" style="width: 80%; height: 10px;">
                                 <div class="progress-bar {% if overlap_weight > 50 %}bg-danger{% else %}bg-info{% endif %}"
                                     role="progressbar" style="width: {{ overlap_weight }}%"></div>
                             </div>
+                            <small class="text-muted">（取兩者持股較小值之和）</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <h6 class="text-muted small">重疊強度指數 (OII)</h6>
+                            <h2 class="fw-bold {{ intensity_color }}">{{ final_intensity }}</h2>
+                            <div class="d-block">
+                                <small class="{{ intensity_color }} fw-bold">{{ intensity_label }}</small>
+                            </div>
+                            <small class="text-muted">（反映大權值股重疊程度）</small>
                         </div>
                     </div>
                 </div>

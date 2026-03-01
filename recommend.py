@@ -113,13 +113,11 @@ def compare_etfs():
         return {}
 
     try:
-        # 1️⃣ 抓取基本資訊與正規化後的對照表 (使用 JOIN)
+        # 1️⃣ 抓取基本資訊與對照表
         with db.cursor() as cursor:
-            # 抓 ETF 名稱
             cursor.execute("SELECT ticker_yfinance, name FROM etf_tickers WHERE ticker_yfinance IN (%s, %s)", (ticker1, ticker2))
             ticker_name_map = {d['ticker_yfinance']: d['name'] for d in cursor.fetchall()}
             
-            # 💡 修改點：使用 JOIN 從兩張表撈取資料
             sql_mapping = """
                 SELECT m.name_en, m.name_cn, m.stock_ticker, s.sector_name 
                 FROM stock_name_map m
@@ -127,11 +125,7 @@ def compare_etfs():
             """
             cursor.execute(sql_mapping)
             mapping_rows = cursor.fetchall()
-            
-            # 建立對照字典
-            # name_lookup: {'英文名': '中文名 (代號)'}
             name_lookup = { r['name_en']: f"{r['name_cn']} ({r['stock_ticker']})" for r in mapping_rows }
-            # sector_lookup: {'英文名': '產業名稱'}
             sector_lookup = { r['name_en']: r['sector_name'] for r in mapping_rows }
 
         # 2️⃣ 抓取成分股與計算重疊
@@ -142,23 +136,26 @@ def compare_etfs():
         overlap_weight = 0
         overlap_details = []
         sector_summary = {}
+        overlap_intensity_score = 0
 
         for stock in common_stocks:
             w1 = holdings1[stock] * 100
             w2 = holdings2[stock] * 100
             current_overlap = min(w1, w2)
             overlap_weight += current_overlap
+
+            # 計算強度：權重的平方和
+            overlap_intensity_score += (current_overlap ** 2)
             
+            # --- 💡 修正縮排：確保產業統計在所有情況下都執行 ---
             s_name = sector_lookup.get(stock, "其他")
             if s_name is None: s_name = "其他"
             
-            # 取得顯示名稱 (中文+代號)
             display_name = name_lookup.get(stock, stock)
 
             if s_name not in sector_summary:
                 sector_summary[s_name] = {'total': 0, 'stocks': []}
             
-            # 累加權重並將股票加入該產業清單
             sector_summary[s_name]['total'] += current_overlap
             sector_summary[s_name]['stocks'].append(display_name)
             
@@ -169,18 +166,25 @@ def compare_etfs():
                 'w2': round(w2, 2)
             })
 
-        # 整理成排序後的清單
+        # 對兩檔 ETF 進行判斷
+        etf1_type = detect_etf_type(ticker_name_map.get(ticker1, ticker1), ticker1)
+        etf2_type = detect_etf_type(ticker_name_map.get(ticker2, ticker2), ticker2)
+
+        # 計算最終強度指數 (OII)
+        import math
+        final_intensity = round(math.sqrt(overlap_intensity_score), 2)
+        
+        if final_intensity > 15:
+            intensity_label, intensity_color = "極高 (風險集中)", "text-danger"
+        elif final_intensity > 5:
+            intensity_label, intensity_color = "中等", "text-warning"
+        else:
+            intensity_label, intensity_color = "低 (分散良好)", "text-success"
+
+        # 整理排序後的產業分析
         sorted_sector_analysis = sorted(
-            [
-                {
-                    "label": k, 
-                    "value": round(v['total'], 2), 
-                    "stock_list": ", ".join(v['stocks']) # 將股票清單轉成字串
-                } 
-                for k, v in sector_summary.items()
-            ],
-            key=lambda x: x['value'],
-            reverse=True
+            [{"label": k, "value": round(v['total'], 2), "stock_list": ", ".join(v['stocks'])} for k, v in sector_summary.items()],
+            key=lambda x: x['value'], reverse=True
         )
 
         # 3️⃣ 相關性計算 (維持原樣)
@@ -203,7 +207,13 @@ def compare_etfs():
             amplitude_corr=corr,
             overlap_weight=round(overlap_weight, 2),
             overlap_details=overlap_details,
-            sector_analysis=sorted_sector_analysis
+            sector_analysis=sorted_sector_analysis,
+            # 💡 新增傳送給 Template 的參數
+            final_intensity=final_intensity,
+            intensity_label=intensity_label,
+            intensity_color=intensity_color,
+            etf1_type=etf1_type,
+            etf2_type=etf2_type
         )
 
     except Exception as e:
@@ -211,3 +221,19 @@ def compare_etfs():
         return redirect(url_for("recommend.recommend_home"))
     finally:
         db.close()
+
+
+def detect_etf_type(name, ticker):
+    # 1. 關鍵字判斷：主動型通常帶有「主動、動力、多空」等字眼
+    active_keywords = ['主動', '動力', '多空', '絕對報酬']
+    if any(k in name for k in active_keywords):
+        return "主動型"
+    
+    # 2. 槓桿與反向型判斷 (這也是老師在意的類型)
+    if '正2' in name or '槓桿' in name:
+        return "槓桿型"
+    if '反1' in name or '反向' in name:
+        return "反向型"
+    
+    # 3. 預設多數為被動型 (追蹤指數型)
+    return "被動型"
