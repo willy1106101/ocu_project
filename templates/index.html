@@ -1,45 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="row mb-4">
     <div class="col-12">
-        <h2 class="display-6">你好，{{ username }}！</h2>
-        <p class="text-muted">這是您今日的台股 ETF 投資概況。</p>
+        <div class="card border-0 shadow-lg text-white" style="background: linear-gradient(45deg, #0d6efd, #00d2ff); border-radius: 15px;">
+            <div class="card-body p-4 p-md-5">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-5 fw-bold mb-2">你好，{{ username }}！</h1>
+                        <p class="lead mb-0">您的投資組合中是否隱藏了重複持股的風險？</p>
+                        <p class="small opacity-75">目前已追蹤全台 {{ stocks|length + my_stocks|length }} 檔熱門 ETF 數據</p>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <a href="/recommend/recommend" class="btn btn-light btn-lg rounded-pill fw-bold px-4 shadow">
+                            <i class="fas fa-search-dollar me-2"></i>立即進行深度診斷
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">市場焦點 ETF</h5>
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-chart-line me-2"></i>市場焦點 ETF</h5>
+                <span class="badge bg-light text-dark">即時更新</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
                             <tr>
-                                <th>名稱/代號</th>
-                                <th>成交</th>
+                                <th class="ps-4">名稱/代號</th>
+                                <th>成交價</th>
                                 <th>漲跌幅</th>
-                                <th>開盤</th>
-                                <th>昨收</th>
+                                <th>最高/最低</th>
+                                <th class="pe-4 text-end">昨收</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for stock in stocks %}
                             <tr>
-                                <td>
-                                    <div class="fw-bold">{{ stock.name }}</div>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ stock.name }}</div>
                                     <small class="text-muted">{{ stock.code }}</small>
                                 </td>
-                                <td>{{ stock.price }}</td>
+                                <td class="fw-bold">{{ stock.price }}</td>
                                 <td>
-                                    <span class="badge {% if stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                    <span class="badge {% if stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}" style="min-width: 65px;">
                                         {{ '+' if stock.change > 0 }}{{ stock.change }}%
                                     </span>
                                 </td>
-                                <td>{{ stock.open }}</td>
-                                <td>{{ stock.last_close }}</td>
+                                <td><small class="text-muted">{{ stock.open }} / {{ stock.last_close }}</small></td>
+                                <td class="pe-4 text-end text-secondary">{{ stock.last_close }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -48,86 +64,69 @@
             </div>
         </div>
 
-        <div class="card shadow-sm border-0 mb-4">
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
             <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">您購買的ETF資訊</h5>
+                <h5 class="mb-0 fw-bold text-success"><i class="fas fa-wallet me-2"></i>您的資產概況</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
                             <tr>
-                                <th>名稱/代號</th>
-                                <th>成交</th>
-                                <th>漲跌幅</th>
-                                <th>開盤</th>
+                                <th class="ps-4">標的</th>
+                                <th>當前價</th>
                                 <th>年報酬率</th>
-                                <th>昨收</th>
-                                <th>振幅</th>
+                                <th>今日振幅</th>
+                                <th class="pe-4 text-end">診斷</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for my_stock in my_stocks %}
                             <tr>
-                                <td>
+                                <td class="ps-4">
                                     <div class="fw-bold">{{ my_stock.name }}</div>
                                     <small class="text-muted">{{ my_stock.code }}</small>
                                 </td>
-                                <td>{{ my_stock.price }}</td>
+                                <td class="fw-bold">{{ my_stock.price }}</td>
                                 <td>
-                                    <span class="badge {% if my_stock.change > 0 %}bg-danger{% else %}bg-success{% endif %}">
-                                        {{ '+' if my_stock.change > 0 }}{{ my_stock.change }}%
+                                    <span class="text-{% if my_stock.annual_return > 0 %}danger{% else %}success{% endif %} fw-bold">
+                                        {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
                                     </span>
                                 </td>
-                                <td>{{ my_stock.open }}</td>
-                                <td><span class="badge {% if my_stock.annual_return > 0 %}bg-danger{% else %}bg-success{% endif %}">
-                                        {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
-                                    </span></td>
-                                <td>{{ my_stock.last_close }}</td>
-                                <td>{{ my_stock.amp }}%</td>
+                                <td><span class="text-muted">{{ my_stock.amp }}%</span></td>
+                                <td class="pe-4 text-end">
+                                    <a href="/recommend/recommend" class="btn btn-outline-primary btn-sm rounded-pill">分析重疊</a>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm border-0 d-none">
-            <div class="card-body text-center py-5">
-                <h5 class="text-muted">近 1 月漲幅趨勢圖</h5>
-                <p class="small text-secondary">(未來可在此處載入 Chart.js 或 Plotly 動態圖表)</p>
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0">績效排行榜 (年報酬)</h5>
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-header bg-dark text-white py-3 border-0">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-trophy me-2 text-warning"></i>年度績效王</h5>
             </div>
             <div class="list-group list-group-flush">
                 {% for rank in rank_list %}
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="fw-bold text-primary">#{{ loop.index }}</span> {{ rank.name }}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
+                            <span class="small fw-bold {% if loop.index == 1 %}text-warning{% else %}text-muted{% endif %}">{{ loop.index }}</span>
+                        </div>
+                        <span class="fw-bold">{{ rank.name }}</span>
                     </div>
-                    <span class="text-danger fw-bold">{{ '+' if rank.annual_return > 0 }}{{ rank.annual_return }}%</span>
+                    <span class="badge bg-danger-soft text-danger fw-bold">{{ rank.annual_return }}%</span>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        <div class="card bg-primary text-white shadow-sm border-0">
-            <div class="card-body text-center py-4">
-                <h5>想要分散投資風險嗎？</h5>
-                <p class="small">立即使用成分股比對工具！</p>
-                <a href="/recommend/recommend" class="btn btn-light btn-sm fw-bold">前往推薦系統</a>
-            </div>
-        </div>
     </div>
 </div>
+
 {% endblock %}

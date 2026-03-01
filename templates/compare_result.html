@@ -59,9 +59,9 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="fas fa-list-ul me-2"></i>共同持有的成分股明細</h5>
+                    <h5 class="mb-0">共同持有的成分股明細</h5>
                 </div>
                 <div class="card-body">
                     {% if overlap_details %}
@@ -92,32 +92,39 @@
                     </div>
                     {% else %}
                     <div class="text-center py-4">
-                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
-                        <p class="lead">這兩檔 ETF 的前十大持股完全沒有重複！</p>
-                        <span class="text-muted">這代表您的資產配置具備極佳的產業分散性。</span>
+                        <p class="lead">無</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
 
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3 fw-bold">
-                    <i class="fas fa-industry me-2 text-secondary"></i>共同持股之產業曝險分析
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">共同持股之產業曝險與明細</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
+                        {% if sector_analysis %}
                         {% for sector in sector_analysis %}
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small fw-bold text-muted">{{ sector.label }}</span>
-                                <span class="small text-primary">{{ sector.value }}%</span>
+                                <span class="fw-bold">{{ sector.label }}</span>
+                                <span class="badge bg-primary rounded-pill">{{ sector.value }}%</span>
                             </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-primary" role="progressbar"
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-primary shadow-sm" role="progressbar"
                                     style="width: {{ sector.value }}%"></div>
+                            </div>
+                            <div class="small text-muted">
+                                <i class="fas fa-link me-1"></i>重疊成分股：{{ sector.stock_list }}
                             </div>
                         </div>
                         {% endfor %}
+                        {% else %}
+                        <div class="col-12 text-center py-4">
+                            <p class="lead">無</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

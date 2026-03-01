@@ -24,8 +24,7 @@ def recommend_home():
                 SELECT t.name, t.ticker, t.ticker_yfinance, ty.name as type_name 
                 FROM etf_tickers t
                 JOIN etf_types ty ON t.types = ty.id
-                WHERE t.types IN ({format_strings}) 
-                LIMIT 6
+                WHERE t.types IN ({format_strings})
             """
             cursor.execute(sql, target_types)
             recommended_etfs = cursor.fetchall()
@@ -150,23 +149,36 @@ def compare_etfs():
             current_overlap = min(w1, w2)
             overlap_weight += current_overlap
             
-            # 從 lookup 中抓取產業名稱，若無則顯示 '其他'
-            s_name = sector_lookup.get(stock)
-            if not s_name: s_name = "其他"
+            s_name = sector_lookup.get(stock, "其他")
+            if s_name is None: s_name = "其他"
             
-            # 統計產業重疊總權重
-            sector_summary[s_name] = sector_summary.get(s_name, 0) + current_overlap
+            # 取得顯示名稱 (中文+代號)
+            display_name = name_lookup.get(stock, stock)
+
+            if s_name not in sector_summary:
+                sector_summary[s_name] = {'total': 0, 'stocks': []}
+            
+            # 累加權重並將股票加入該產業清單
+            sector_summary[s_name]['total'] += current_overlap
+            sector_summary[s_name]['stocks'].append(display_name)
             
             overlap_details.append({
-                'name': name_lookup.get(stock, stock),
+                'name': display_name,
                 'sector': s_name,
                 'w1': round(w1, 2),
                 'w2': round(w2, 2)
             })
 
-        # 整理產業分析數據並排序
+        # 整理成排序後的清單
         sorted_sector_analysis = sorted(
-            [{"label": k, "value": round(v, 2)} for k, v in sector_summary.items()],
+            [
+                {
+                    "label": k, 
+                    "value": round(v['total'], 2), 
+                    "stock_list": ", ".join(v['stocks']) # 將股票清單轉成字串
+                } 
+                for k, v in sector_summary.items()
+            ],
             key=lambda x: x['value'],
             reverse=True
         )
