@@ -5,7 +5,8 @@
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>根據您的風險等級推薦</h3>
-            <span class="badge {% if user_risk == '高風險' %}bg-danger{% elif user_risk == '中風險' %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6">
+            <span
+                class="badge {% if user_risk == '高風險' %}bg-danger{% elif user_risk == '中風險' %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6">
                 目前設定：{{ user_risk }}
             </span>
         </div>
@@ -32,7 +33,8 @@
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-0 pb-3">
-                        <button class="btn btn-outline-primary w-100 btn-sm" onclick="setCompare('{{ etf.ticker_yfinance }}')">加入比對</button>
+                        <button class="btn btn-outline-primary w-100 btn-sm"
+                            onclick="setCompare('{{ etf.ticker_yfinance }}')">加入比對</button>
                     </div>
                 </div>
             </div>
@@ -54,38 +56,59 @@
                 <p class="small text-muted">選擇兩檔 ETF，分析它們底層成分股是否過度集中。</p>
                 <form action="{{ url_for('recommend.compare_etfs') }}" method="POST">
                     <div class="mb-3">
-                        <label class="form-label">第一檔 ETF</label>
-                        <select name="etf1" id="etf_select1" class="form-select" required>
-                            <option value="">請選擇...</option>
+                        <label class="form-label">第一檔 ETF (可輸入代號或名稱搜尋)</label>
+
+                        <input type="text" name="etf1" id="etf_select1" class="form-select" list="etf_options"
+                            placeholder="輸入代號或關鍵字..." required autocomplete="off">
+
+                        <datalist id="etf_options">
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.ticker_yfinance }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker_yfinance }}">
+                                {{ a_etf.ticker }} {{ a_etf.name }} ({{ a_etf.type_name }})
+                            </option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">第二檔 ETF</label>
-                        <select name="etf2" id="etf_select2" class="form-select" required>
-                            <option value="">請選擇...</option>
+                        <label class="form-label">第二檔 ETF (可輸入代號或名稱搜尋)</label>
+
+                        <input type="text" name="etf2" id="etf_select2" class="form-select" list="etf_options"
+                            placeholder="請輸入或選擇..." required autocomplete="off">
+
+                        <datalist id="etf_options">
                             {% for a_etf in all_etfs %}
-                            <option value="{{ a_etf.ticker_yfinance }}">{{ a_etf.ticker }} {{ a_etf.name }}</option>
+                            <option value="{{ a_etf.ticker_yfinance }}">
+                                {{ a_etf.ticker }} {{ a_etf.name }} ({{ a_etf.type_name }})
+                            </option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
                     <button type="submit" class="btn btn-success w-100">開始成分股分析</button>
                 </form>
             </div>
         </div>
     </div>
+
 </div>
 
 <script>
     function setCompare(code) {
-        let s1 = document.getElementById('etf_select1');
-        let s2 = document.getElementById('etf_select2');
+        // 取得兩個搜尋輸入框
+        const s1 = document.getElementById('etf_select1');
+        const s2 = document.getElementById('etf_select2');
+
         if (!s1.value) {
             s1.value = code;
+            // 💡 亮點：填入後自動閃爍一下，讓使用者知道填好了
+            s1.classList.add('is-valid');
+            setTimeout(() => s1.classList.remove('is-valid'), 1000);
         } else if (s1.value !== code) {
             s2.value = code;
+            s2.classList.add('is-valid');
+            setTimeout(() => s2.classList.remove('is-valid'), 1000);
+        } else {
+            // 如果重複點擊同一檔，可以做個小提示
+            alert('此 ETF 已在比對清單中');
         }
     }
 </script>

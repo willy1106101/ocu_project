@@ -30,7 +30,7 @@ def recommend_home():
             recommended_etfs = cursor.fetchall()
             
             # 抓取所有 ETF 供下拉選單
-            cursor.execute("SELECT ticker, name, ticker_yfinance FROM etf_tickers ORDER BY ticker ASC")
+            cursor.execute("SELECT t.name, t.ticker, t.ticker_yfinance, ty.name as type_name FROM etf_tickers t JOIN etf_types ty ON t.types = ty.id ORDER BY type_name ASC")
             all_etfs = cursor.fetchall()
             
         return render_template('recommend.html', 
