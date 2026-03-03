@@ -1,5 +1,6 @@
 from flask import Flask, redirect, url_for, render_template, session
 import yfinance as yf
+from datetime import datetime, timedelta
 import datetime
 from auth import auth_bp
 from portfolio import portfolio_bp
@@ -54,11 +55,13 @@ def home():
             tickers = cursor.fetchall()
             for item in tickers:
                 info = get_etf_snapshot(item['ticker_yfinance'])
+                price_pos = get_price_position(item['ticker_yfinance'])
                 if info:
                     real_data.append({
                         'name': item['name'], 'code': item['ticker'], 'price': info['price'],
                         'change': info['change'], 'open': info['open'], 'last_close': info['last_close'],
-                        'annual_return': info['annual_return']
+                        'annual_return': info['annual_return'],
+                        'pos': price_pos  # 優先使用 get_price_position 的結果
                     })
             rank_list = sorted(real_data, key=lambda x: x['annual_return'], reverse=True)
 
@@ -74,10 +77,12 @@ def home():
 
             for item in my_tickers:
                 info = get_etf_snapshot(item['ticker_yfinance'])
+                price_pos = get_price_position(item['ticker_yfinance'])
                 if info:
                     my_portfolio_data.append({
                         'name': item['stock_name'], 'code': item['stock_code'], 'price': info['price'],
-                        'change': info['change'], 'annual_return': info['annual_return'], 'amp': info['amp']
+                        'change': info['change'], 'annual_return': info['annual_return'], 'amp': info['amp'],
+                        'pos': price_pos  # 優先使用 get_price_position 的結果
                     })
                     
                     # 💡 關鍵：統計該 ETF 的產業分佈
@@ -112,7 +117,7 @@ def home():
         my_stocks=my_portfolio_data,
         username=session.get('username'),
         # 💡 傳送到前端
-        dashboard_sector_analysis=dashboard_sector_analysis
+        dashboard_sector_analysis=dashboard_sector_analysis,
     )
 
 def get_etf_snapshot(ticker_yfinance):
@@ -264,6 +269,40 @@ def get_yesterday_close(ticker_yfinance):
 
     except Exception as e:
         print(f"{ticker_yfinance} error:", e)
+        return None
+
+def get_price_position(ticker_yfinance):
+    try:
+        ticker = yf.Ticker(ticker_yfinance)
+        # 抓取 1 個月資料
+        hist = ticker.history(period="1mo") 
+        if len(hist) < 2: return None
+
+        current_price = hist['Close'].iloc[-1]
+        
+        # 💡 關鍵修正：排除最後一筆(今天)，計算過去的區間
+        past_hist_7d = hist.iloc[:-1].tail(7)
+        past_hist_30d = hist.iloc[:-1]
+
+        # 取得過去的極值
+        max_7 = past_hist_7d['High'].max()
+        min_7 = past_hist_7d['Low'].min()
+        max_30 = past_hist_30d['High'].max()
+        min_30 = past_hist_30d['Low'].min()
+
+        # 💡 增加容許區間 (例如 1% 內就算高檔)
+        threshold = 1.01 # 高於過去最高點或在 1% 誤差內
+
+        return {
+            'current': round(current_price, 2),
+            # 只要今天收盤價「接近」或「超過」過去最高，就亮燈
+            'is_7d_high': current_price >= max_7 * 0.99,
+            'is_7d_low': current_price <= min_7 * 1.01,
+            'is_30d_high': current_price >= max_30 * 0.99,
+            'is_30d_low': current_price <= min_30 * 1.01,
+        }
+    except Exception as e:
+        print(f"位階計算錯誤: {e}")
         return None
 
 if __name__ == '__main__':

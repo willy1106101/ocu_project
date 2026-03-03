@@ -36,7 +36,7 @@
                             <tr>
                                 <th class="ps-4">名稱/代號</th>
                                 <th>成交價</th>
-                                <th>漲跌幅</th>
+                                <th colspan="2">漲跌幅</th>
                                 <th class="pe-4 text-end">昨收</th>
                             </tr>
                         </thead>
@@ -54,6 +54,29 @@
                                         style="min-width: 65px;">
                                         {{ '+' if stock.change > 0 }}{{ stock.change }}%
                                     </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% if stock.pos %}
+                                        {% if stock.pos.is_7d_high %}
+                                        <span class="badge bg-danger">7日最高</span>
+                                        {% elif stock.pos.is_7d_low %}
+                                        <span class="badge bg-success">7日最低</span>
+                                        {% endif %}
+
+                                        {% if stock.pos.is_30d_high %}
+                                        <span class="badge border border-danger text-danger"
+                                            style="font-size: 0.7rem; background: rgba(220, 53, 69, 0.05);">近月最高</span>
+                                        {% elif stock.pos.is_30d_low %}
+                                        <span class="badge border border-success text-success"
+                                            style="font-size: 0.7rem; background: rgba(25, 135, 84, 0.05);">近月最低</span>
+                                        {% else %}
+                                        <small class="text-muted opacity-50">區間整理中</small>
+                                        {% endif %}
+                                        {% else %}
+                                        <small class="text-muted opacity-50">載入中...</small>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td class="pe-4 text-end text-secondary">{{ stock.last_close }}</td>
                             </tr>
@@ -98,7 +121,7 @@
                             <tr>
                                 <th class="ps-4">標的</th>
                                 <th>當前價</th>
-                                <th>年報酬率</th>
+                                <th colspan="2">年報酬率 / 位階狀態</th>
                                 <th>今日振幅</th>
                                 <th class="pe-4 text-end">診斷</th>
                             </tr>
@@ -111,12 +134,38 @@
                                     <small class="text-muted">{{ my_stock.code }}</small>
                                 </td>
                                 <td class="fw-bold">{{ my_stock.price }}</td>
-                                <td>
+
+                                <td style="width: 100px;">
                                     <span
                                         class="text-{% if my_stock.annual_return > 0 %}danger{% else %}success{% endif %} fw-bold">
                                         {{ '+' if my_stock.annual_return > 0 }}{{ my_stock.annual_return }}%
                                     </span>
                                 </td>
+
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% if my_stock.pos %}
+                                        {% if my_stock.pos.is_7d_high %}
+                                        <span class="badge bg-danger">7日最高</span>
+                                        {% elif my_stock.pos.is_7d_low %}
+                                        <span class="badge bg-success">7日最低</span>
+                                        {% endif %}
+
+                                        {% if my_stock.pos.is_30d_high %}
+                                        <span class="badge border border-danger text-danger"
+                                            style="font-size: 0.7rem; background: rgba(220, 53, 69, 0.05);">近月最高</span>
+                                        {% elif my_stock.pos.is_30d_low %}
+                                        <span class="badge border border-success text-success"
+                                            style="font-size: 0.7rem; background: rgba(25, 135, 84, 0.05);">近月最低</span>
+                                        {% else %}
+                                        <small class="text-muted opacity-50">區間整理中</small>
+                                        {% endif %}
+                                        {% else %}
+                                        <small class="text-muted opacity-50">載入中...</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
                                 <td><span class="text-muted">{{ my_stock.amp }}%</span></td>
                                 <td class="pe-4 text-end">
                                     <a href="/recommend/recommend"
