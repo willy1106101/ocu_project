@@ -104,6 +104,14 @@ def home():
             key=lambda x: x['value'], reverse=True
         )
 
+        print("--- [資料校對報告] ---")
+        for s in my_portfolio_data:
+            print(f"標的: {s['code']}, 價格: {s['price']}, 位階: {s['pos']}")
+            
+        total_sector_weight = sum(item['value'] for item in dashboard_sector_analysis)
+        print(f"總產業權重加總: {total_sector_weight}% (應接近 100%)")
+        print("--------------------")
+
     except Exception as e:
         print(f"資料讀取錯誤: {e}")
         dashboard_sector_analysis = []
