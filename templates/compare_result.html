@@ -8,6 +8,13 @@
                 ← 返回推薦系統
             </a>
 
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">共同持有的成分股明細</h5>
+                <a href="{{ url_for('recommend.export_comparison_excel') }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-file-download me-1"></i> 匯出明細 Excel
+                </a>
+            </div>
+
             <div class="card shadow-sm mb-4 border-0">
                 <div class="card-body p-4 text-center">
                     <h3 class="mb-4 fw-bold">ETF 深度重複性診斷報告</h3>

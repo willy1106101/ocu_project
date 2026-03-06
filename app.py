@@ -2,10 +2,10 @@ from flask import Flask, redirect, url_for, render_template, session
 import yfinance as yf
 from datetime import datetime, timedelta
 import datetime
-from auth import auth_bp
-from portfolio import portfolio_bp
-from recommend import recommend_bp
-from models import get_db_connection
+from service.auth import auth_bp
+from service.portfolio import portfolio_bp
+from service.recommend import recommend_bp
+from service.models import get_db_connection
 
 app = Flask(__name__)
 app.secret_key = 'your_key'

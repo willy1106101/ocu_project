@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for
+from flask import Blueprint, render_template, request, session, redirect, url_for, make_response
 from models import get_db_connection
 import yfinance as yf
 import pandas as pd
+import csv
+import io
 
 recommend_bp = Blueprint('recommend', __name__)
 
@@ -199,6 +201,38 @@ def compare_etfs():
             if not merged.empty:
                 corr = merged["amp_1"].corr(merged["amp_2"])
                 corr = None if pd.isna(corr) else round(float(corr), 3)
+        
+        # 1️⃣ 在迴圈外部先定義好這個清單
+        export_list = [] 
+
+        for stock in common_stocks:
+            w1 = holdings1[stock] * 100
+            w2 = holdings2[stock] * 100
+            current_overlap = min(w1, w2)
+            
+            # ... (原本的產業統計邏輯) ...
+
+            # 2️⃣ 同時把資料塞進要匯出的清單
+            export_list.append({
+                'name': name_lookup.get(stock, stock),
+                'w1': round(w1, 2),
+                'w2': round(w2, 2),
+                'overlap': round(current_overlap, 2)
+            })
+            
+            # 原本的 overlap_details 也要繼續 append
+            overlap_details.append({
+                'name': name_lookup.get(stock, stock),
+                'sector': s_name,
+                'w1': round(w1, 2),
+                'w2': round(w2, 2)
+            })
+
+        session['last_comparison'] = {
+            'etf1_name': ticker_name_map.get(ticker1, ticker1),
+            'etf2_name': ticker_name_map.get(ticker2, ticker2),
+            'details': export_list
+        }
 
         return render_template(
             "compare_result.html",
@@ -237,3 +271,37 @@ def detect_etf_type(name, ticker):
     
     # 3. 預設多數為被動型 (追蹤指數型)
     return "被動型"
+
+
+
+@recommend_bp.route('/export_comparison_excel')
+def export_comparison_excel():
+    # 1. 從 Session 取得剛才比對的資料
+    data = session.get('last_comparison')
+    
+    if not data:
+        return "找不到比對紀錄，請重新進行比對", 400
+
+    si = io.StringIO()
+    si.write('\ufeff')  # 解決 Excel 開啟中文亂碼
+    cw = csv.writer(si)
+    
+    # 2. 根據兩檔 ETF 的名稱動態產生標題
+    etf1 = data['etf1_name']
+    etf2 = data['etf2_name']
+    cw.writerow(['公司名稱', f'{etf1} 權重(%)', f'{etf2} 權重(%)', '風險重疊權重(%)'])
+    
+    # 3. 寫入 Session 存下來的真實細節
+    for row in data['details']:
+        cw.writerow([
+            row['name'], 
+            f"{row['w1']}%", 
+            f"{row['w2']}%", 
+            f"{row['overlap']}%"
+        ])
+        
+    output = make_response(si.getvalue())
+    # 設定下載檔名
+    output.headers["Content-Disposition"] = f"attachment; filename=ETF_Overlap_Report.csv"
+    output.headers["Content-type"] = "text/csv; charset=utf-8"
+    return output
