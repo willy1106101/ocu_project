@@ -36,7 +36,8 @@
                             <tr>
                                 <th class="ps-4">名稱/代號</th>
                                 <th>成交價</th>
-                                <th colspan="2">漲跌幅</th>
+                                <th>漲跌幅</th>
+                                <th>年報酬率 / 位階狀態</th>
                                 <th class="pe-4 text-end">昨收</th>
                             </tr>
                         </thead>
@@ -56,27 +57,36 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {% if stock.pos %}
+                                    {% if stock.pos %}
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
                                         {% if stock.pos.is_7d_high %}
-                                        <span class="badge bg-danger">7日最高</span>
+                                        <span class="badge bg-danger shadow-sm">7日高</span>
                                         {% elif stock.pos.is_7d_low %}
-                                        <span class="badge bg-success">7日最低</span>
+                                        <span class="badge bg-success shadow-sm">7日低</span>
                                         {% endif %}
 
                                         {% if stock.pos.is_30d_high %}
-                                        <span class="badge border border-danger text-danger"
-                                            style="font-size: 0.7rem; background: rgba(220, 53, 69, 0.05);">近月最高</span>
+                                        <span class="badge text-danger border border-danger bg-white">月高</span>
                                         {% elif stock.pos.is_30d_low %}
-                                        <span class="badge border border-success text-success"
-                                            style="font-size: 0.7rem; background: rgba(25, 135, 84, 0.05);">近月最低</span>
-                                        {% else %}
-                                        <small class="text-muted opacity-50">區間整理中</small>
-                                        {% endif %}
-                                        {% else %}
-                                        <small class="text-muted opacity-50">載入中...</small>
+                                        <span class="badge text-success border border-success bg-white">月低</span>
                                         {% endif %}
                                     </div>
+
+                                    <div class="bg-light rounded p-2 small text-muted">
+                                        <div class="d-flex justify-content-between">
+                                            <span>月高/低:</span>
+                                            <span class="fw-bold text-dark">{{ stock.month_high }} / {{ stock.month_low
+                                                }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>季高/低:</span>
+                                            <span class="fw-bold text-dark">{{ stock.quarter_high }} / {{
+                                                stock.quarter_low }}</span>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>載入中</div>
+                                    {% endif %}
                                 </td>
                                 <td class="pe-4 text-end text-secondary">{{ stock.last_close }}</td>
                             </tr>
@@ -143,27 +153,46 @@
                                 </td>
 
                                 <td>
-                                    <div class="d-flex flex-wrap gap-1">
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
                                         {% if my_stock.pos %}
                                         {% if my_stock.pos.is_7d_high %}
-                                        <span class="badge bg-danger">7日最高</span>
+                                        <span class="badge bg-danger shadow-sm">7日最高</span>
                                         {% elif my_stock.pos.is_7d_low %}
-                                        <span class="badge bg-success">7日最低</span>
+                                        <span class="badge bg-success shadow-sm">7日最低</span>
                                         {% endif %}
 
                                         {% if my_stock.pos.is_30d_high %}
-                                        <span class="badge border border-danger text-danger"
+                                        <span class="badge border border-danger text-danger bg-white"
                                             style="font-size: 0.7rem; background: rgba(220, 53, 69, 0.05);">近月最高</span>
                                         {% elif my_stock.pos.is_30d_low %}
-                                        <span class="badge border border-success text-success"
+                                        <span class="badge border border-success text-success bg-white"
                                             style="font-size: 0.7rem; background: rgba(25, 135, 84, 0.05);">近月最低</span>
-                                        {% else %}
-                                        <small class="text-muted opacity-50">區間整理中</small>
+                                        {% endif %}
+
+                                        {% if not my_stock.pos.is_7d_high and not my_stock.pos.is_7d_low and not
+                                        my_stock.pos.is_30d_high and not my_stock.pos.is_30d_low %}
+                                        <small class="text-muted opacity-75">區間整理中</small>
                                         {% endif %}
                                         {% else %}
-                                        <small class="text-muted opacity-50">載入中...</small>
+                                        <small class="text-muted opacity-50"><i
+                                                class="fas fa-spinner fa-spin me-1"></i>載入中...</small>
                                         {% endif %}
                                     </div>
+
+                                    {% if my_stock.month_high %}
+                                    <div class="bg-light rounded p-2" style="font-size: 0.75rem;">
+                                        <div class="d-flex justify-content-between text-muted">
+                                            <span>月高/低:</span>
+                                            <span class="fw-bold text-dark">{{ my_stock.month_high }} / {{
+                                                my_stock.month_low }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between text-muted">
+                                            <span>季高/低:</span>
+                                            <span class="fw-bold text-dark">{{ my_stock.quarter_high }} / {{
+                                                my_stock.quarter_low }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </td>
 
                                 <td><span class="text-muted">{{ my_stock.amp }}%</span></td>

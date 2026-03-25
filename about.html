@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統功能說明</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: "Microsoft JhengHei", sans-serif; }
+        .hero-section { background: linear-gradient(135deg, #198754 0%, #0d6efd 100%); color: white; padding: 60px 0; }
+        .feature-card { border: none; transition: transform 0.3s; height: 100%; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .feature-card:hover { transform: translateY(-10px); }
+        .icon-box { font-size: 2.5rem; margin-bottom: 1.5rem; color: #198754; }
+        .qa-section { background-color: white; border-radius: 15px; padding: 30px; margin-top: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .accordion-button:not(.collapsed) { background-color: #e8f5e9; color: #198754; }
+    </style>
+</head>
+<body>
+
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold">台股 ETF</h1>
+            <p class="lead mt-3">解決投資人「重複持股」與「過度集中」的盲點，為您的資產進行穿透式體檢</p>
+        </div>
+    </header>
+
+    <main class="container my-5">
+        <h2 class="text-center mb-5 fw-bold"><i class="fas fa-microchip me-2"></i>核心功能解析</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card p-4">
+                    <div class="icon-box"><i class="fas fa-magnifying-glass-chart"></i></div>
+                    <h4 class="fw-bold">穿透式重疊分析</h4>
+                    <p class="text-muted">透過 yfinance 即時抓取成分股並交叉比對。揭露兩檔 ETF 之間高達 80% 以上的重疊率，防止假分散投資。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-4">
+                    <div class="icon-box"><i class="fas fa-tags"></i></div>
+                    <h4 class="fw-bold">7日/30日位階診斷</h4>
+                    <p class="text-muted">比對當前市價與歷史區間。以「7日最高」或「區間整理」等直觀標籤，輔助投資人判斷基期高低。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-4">
+                    <div class="icon-box"><i class="fas fa-pie-chart"></i></div>
+                    <h4 class="fw-bold">產業曝險預警</h4>
+                    <p class="text-muted">自動分類成分股產業屬性。預警特定產業（如半導體 66%）的集中風險，協助調整資產配置。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-4">
+                    <div class="icon-box"><i class="fas fa-lightbulb"></i></div>
+                    <h4 class="fw-bold">智慧推薦引擎</h4>
+                    <p class="text-muted">根據風險等級過濾 SQL 資料庫。針對診斷後的風險缺口，主動提供「低相關、穩健評級」的替代標的。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-4">
+                    <div class="icon-box"><i class="fas fa-file-export"></i></div>
+                    <h4 class="fw-bold">診斷報表匯出</h4>
+                    <p class="text-muted">一鍵產出正確的量化報告。包含所有成分股明細與風險重疊權重，方便投資人紀錄與追蹤。</p>
+                </div>
+            </div>
+        </div>
+
+        <section class="qa-section mt-5">
+            <h2 class="mb-4 fw-bold text-center"><i class="fas fa-question-circle me-2"></i>常見問題 Q&A</h2>
+            <div class="accordion" id="faqAccordion">
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            Q1：為什麼系統顯示兩檔 ETF 重疊度這麼高？
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            許多熱門 ETF 追蹤相似指數。本系統透過 <strong>OII 重疊強度指數</strong> 提醒投資人，購買名字不同的 ETF 不代表風險已分散，幫助避開管理費浪費。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            Q2：推薦系統的「評級」依據是什麼？
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            評級是綜合標的的<strong>歷史報酬穩定度、費用率以及波動度</strong>所產生的指標。我們會根據您設定的<strong>風險等級</strong>，自動篩選出最符合需求的優質標的。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            Q3：為什麼產業加總不到 100%？
+                        </button>
+                    </h2>
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            這是為了維持資料的<strong>誠實性</strong>。約 80% 的比例已涵蓋核心成分股，其餘部分可能包含現金部位或資料庫尚未錄入的標的，這已足以提供有效的集中度預警。
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
