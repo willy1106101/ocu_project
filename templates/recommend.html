@@ -28,7 +28,29 @@
                             </div>
                             <div class="col-8 text-end">
                                 <small class="text-muted d-block">操作建議</small>
-                                <span class="badge bg-info text-dark">適合{{ user_risk }}投資者</span>
+                                <span class="badge bg-info text-dark">適合{{ user_risk }}投資者</span><br>
+                                <small class="text-muted">ETF評級 
+                                    <span class="badge 
+                                        {% if etf.score_label == '優質' %}bg-success
+                                        {% elif etf.score_label == '穩健' %}bg-primary
+                                        {% elif etf.score_label == '普通' %}bg-warning text-dark
+                                        {% else %}bg-secondary
+                                        {% endif %}">
+                                        {{ etf.score_label }}
+                                    </span>
+                                </small><br>
+                                {% if etf.score_label == '優質' %}
+                                <span class="fw-bold text-success fs-5">
+                                    {% elif etf.score_label == '穩健' %}
+                                    <span class="fw-bold text-primary fs-5">
+                                        {% elif etf.score_label == '普通' %}
+                                        <span class="fw-bold text-warning fs-5">
+                                            {% else %}
+                                            <span class="fw-bold text-secondary fs-5">
+                                                {% endif %}
+
+                                                {{ etf.score_stars }}
+                                            </span>
                             </div>
                         </div>
                     </div>
