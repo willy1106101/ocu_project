@@ -1,16 +1,15 @@
 from flask import Flask, redirect, url_for, render_template, session
 import yfinance as yf
-from datetime import datetime, timedelta
+from datetime import datetime
 from service.auth import auth_bp
 from service.portfolio import portfolio_bp
-from service.recommend import recommend_bp, cache # 💡 引入同一個 cache 物件
+from service.recommend import recommend_bp, cache 
 from service.models import get_db_connection
 
 app = Flask(__name__)
 app.secret_key = 'your_key'
-cache.init_app(app) # 💡 初始化快取
+cache.init_app(app)
 
-# 註冊藍圖
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(portfolio_bp, url_prefix='/portfolio')
 app.register_blueprint(recommend_bp, url_prefix='/recommend')
@@ -19,52 +18,31 @@ app.register_blueprint(recommend_bp, url_prefix='/recommend')
 def index():
     return redirect(url_for('auth.login'))
 
-# --- 💡 核心工具函數：加上快取，避免主頁面重複抓取卡頓 ---
-@cache.memoize(timeout=3600) # 快取 1 小時
+# --- 💡 核心工具函數：快取化 ---
+@cache.memoize(timeout=3600)
 def get_full_etf_data(ticker_yfinance):
     try:
         ticker = yf.Ticker(ticker_yfinance)
-        # 一次抓取 3 個月資料
         hist_3m = ticker.history(period="3mo")
-        if hist_3m.empty or len(hist_3m) < 2:
-            return None
+        if hist_3m.empty or len(hist_3m) < 2: return None
 
-        # 1. 基礎行情
-        latest = hist_3m.iloc[-1]
-        prev = hist_3m.iloc[-2]
-        current_price = latest["Close"]
-        yesterday_close = prev["Close"]
+        latest, prev = hist_3m.iloc[-1], hist_3m.iloc[-2]
+        current_price, yesterday_close = latest["Close"], prev["Close"]
         
-        # 2. 漲跌幅與振幅
-        change_percent = ((current_price - yesterday_close) / yesterday_close) * 100
-        amplitude = ((latest["High"] - latest["Low"]) / yesterday_close) * 100
-
-        # 3. 年報酬 (快取機制下，這段抓取會被記住，不會每次都慢)
         hist_1y = ticker.history(period="1y")
-        annual_return = 0
-        if not hist_1y.empty:
-            start_p = hist_1y["Close"].iloc[0]
-            end_p = hist_1y["Close"].iloc[-1]
-            annual_return = ((end_p - start_p) / start_p) * 100
+        annual_return = ((hist_1y["Close"].iloc[-1] - hist_1y["Close"].iloc[0]) / hist_1y["Close"].iloc[0] * 100) if not hist_1y.empty else 0
 
-        # 4. 位階計算 (排除今日後的過去區間)
         past_3m = hist_3m.iloc[:-1]
-        past_1m = past_3m.tail(20)
-        past_7d = past_3m.tail(7)
-
-        max_7, min_7 = past_7d['High'].max(), past_7d['Low'].min()
-        max_30, min_30 = past_1m['High'].max(), past_1m['Low'].min()
+        max_30, min_30 = past_3m.tail(20)['High'].max(), past_3m.tail(20)['Low'].min()
         max_90, min_90 = past_3m['High'].max(), past_3m['Low'].min()
 
         return {
             "price": round(current_price, 2),
-            "change": round(change_percent, 2),
             "last_close": round(yesterday_close, 2),
-            "amp": round(amplitude, 2),
+            "change": round(((current_price - yesterday_close) / yesterday_close) * 100, 2),
             "annual_return": round(annual_return, 2),
+            "amp": round(((latest["High"] - latest["Low"]) / yesterday_close) * 100, 2),
             "pos": {
-                "is_7d_high": current_price >= max_7 * 0.99,
-                "is_7d_low": current_price <= min_7 * 1.01,
                 "is_30d_high": current_price >= max_30 * 0.99,
                 "is_30d_low": current_price <= min_30 * 1.01,
                 "is_90d_high": current_price >= max_90 * 0.99,
@@ -73,15 +51,12 @@ def get_full_etf_data(ticker_yfinance):
             "month_high": round(max_30, 2), "month_low": round(min_30, 2),
             "quarter_high": round(max_90, 2), "quarter_low": round(min_90, 2)
         }
-    except Exception as e:
-        print(f"數據抓取失敗({ticker_yfinance}): {e}")
-        return None
+    except: return None
 
-# --- 主頁面路由 ---
+# --- 優化版主頁 ---
 @app.route('/index')
 def home():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     
     db = get_db_connection()
     user_id = session.get('user_id')
@@ -89,67 +64,42 @@ def home():
     
     try:
         with db.cursor() as cursor:
-            # 1. 產業對照表
+            # 1. 產業映射
             cursor.execute("SELECT m.name_en, s.sector_name FROM stock_name_map m LEFT JOIN stock_sectors s ON m.sector_id = s.id")
             sector_lookup = {r['name_en']: r['sector_name'] for r in cursor.fetchall()}
 
-            # 2. 市場焦點 ETF (使用快取後的工具函數)
+            # 2. 市場焦點
             cursor.execute("SELECT name, ticker, ticker_yfinance FROM etf_tickers ORDER BY rand() LIMIT 5")
             for item in cursor.fetchall():
-                full_info = get_full_etf_data(item['ticker_yfinance'])
-                if full_info:
-                    full_info.update({'name': item['name'], 'code': item['ticker']})
-                    real_data.append(full_info)
+                info = get_full_etf_data(item['ticker_yfinance'])
+                if info:
+                    info.update({'name': item['name'], 'code': item['ticker']})
+                    real_data.append(info)
             
-            rank_list = sorted(real_data, key=lambda x: x['annual_return'], reverse=True)
-
-            # 3. 個人持股與全資產產業統計
-            cursor.execute("""
-                SELECT DISTINCT p.stock_name, p.stock_code, t.ticker_yfinance 
-                FROM user_portfolio p
-                JOIN etf_tickers t ON p.stock_code = t.ticker
-                WHERE p.user_id = %s
-            """, (user_id,))
+            # 3. 個人持股與產業統計 (減少重複爬蟲)
+            cursor.execute("SELECT DISTINCT p.stock_name, p.stock_code, t.ticker_yfinance FROM user_portfolio p JOIN etf_tickers t ON p.stock_code = t.ticker WHERE p.user_id = %s", (user_id,))
+            portfolio_items = cursor.fetchall()
             
-            for item in cursor.fetchall():
-                full_info = get_full_etf_data(item['ticker_yfinance'])
-                if full_info:
-                    my_portfolio_data.append({
-                        'name': item['stock_name'], 'code': item['stock_code'], 
-                        'price': full_info['price'], 'change': full_info['change'],
-                        'annual_return': full_info['annual_return'], 'amp': full_info['amp'],
-                        'pos': full_info['pos'],
-                        # ⭐ 補上高低價參數給前端顯示
-                        'month_high': full_info['month_high'], 'month_low': full_info['month_low'],
-                        'quarter_high': full_info['quarter_high'], 'quarter_low': full_info['quarter_low']
-                    })
-                    
-                    # 統計產業分佈 (這部分也可以考慮獨立快取，但目前先維持)
-                    try:
-                        t = yf.Ticker(item['ticker_yfinance'])
-                        holdings = t.funds_data.top_holdings
-                        if holdings is not None and not holdings.empty:
-                            for i in range(len(holdings)):
-                                stock_en = str(holdings.iloc[i].iloc[0])
-                                weight = float(holdings.iloc[i].iloc[1]) * 100
-                                s_name = sector_lookup.get(stock_en, "其他")
-                                all_sector_dist[s_name] = all_sector_dist.get(s_name, 0) + weight
-                    except: continue
+            for item in portfolio_items:
+                info = get_full_etf_data(item['ticker_yfinance'])
+                if info:
+                    my_portfolio_data.append({**info, 'name': item['stock_name'], 'code': item['stock_code']})
+                    # 統計產業分佈
+                    t = yf.Ticker(item['ticker_yfinance'])
+                    holdings = t.funds_data.top_holdings
+                    if holdings is not None and not holdings.empty:
+                        for i in range(len(holdings)):
+                            s_name = sector_lookup.get(str(holdings.iloc[i].iloc[0]), "其他")
+                            all_sector_dist[s_name] = all_sector_dist.get(s_name, 0) + (float(holdings.iloc[i].iloc[1]) * 100)
 
-        dashboard_sector_analysis = sorted(
-            [{"label": k, "value": round(v, 2)} for k, v in all_sector_dist.items()],
-            key=lambda x: x['value'], reverse=True
-        )
+    finally: db.close()
 
-    except Exception as e:
-        print(f"主首頁讀取錯誤: {e}")
-        dashboard_sector_analysis = []
-    finally:
-        db.close()
-
-    return render_template('index.html', stocks=real_data, rank_list=rank_list, 
-                           my_stocks=my_portfolio_data, username=session.get('username'),
-                           dashboard_sector_analysis=dashboard_sector_analysis)
+    return render_template('index.html', 
+        stocks=real_data, 
+        rank_list=sorted(real_data, key=lambda x: x['annual_return'], reverse=True), 
+        my_stocks=my_portfolio_data, 
+        username=session.get('username'),
+        dashboard_sector_analysis=sorted([{"label": k, "value": round(v, 2)} for k, v in all_sector_dist.items()], key=lambda x: x['value'], reverse=True))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False) # 💡 Demo 前請務必關閉 debug
